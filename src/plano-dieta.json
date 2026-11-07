@@ -1,0 +1,143 @@
+{
+  "_": "Plano da nutricionista do Pedro, transcrito dos prints do Web Diet em 07/11/2026. prot e kcal por refeição estão null porque os prints só mostram o total do dia — preencher quando a tela de macros por refeição aparecer. Lanche 1/2/3 são alternativas do mesmo horário: mesmo grupo, escolhe uma.",
+  "totaisDoDia": { "prot": 140.4, "lip": 35.3, "carb": 160.0, "kcal": 1503 },
+  "agua": { "mlPorKg": [45, 50] },
+  "orientacoes": [
+    {
+      "hora": "07:30",
+      "titulo": "Uso da creatina",
+      "texto": "5 g por dia, todos os dias, inclusive nos dias sem treino. Pode ser diluída em água, suco, vitamina ou iogurte. O horário não é o mais importante: o principal é a constância diária. Manter boa hidratação ao longo do dia."
+    }
+  ],
+  "refeicoes": [
+    {
+      "grupo": "cafe",
+      "nome": "Café da manhã",
+      "hora": "07:20",
+      "prot": null,
+      "kcal": null,
+      "itens": [
+        { "nome": "Pão francês (pão de sal, pão carequinha)", "qtd": "1 unidade ou 50 g", "subs": [] },
+        { "nome": "Queijo muçarela light Tirolez sem lactose", "qtd": "20 g", "subs": [] },
+        { "nome": "Ovo de galinha", "qtd": "2 unidades ou 100 g", "subs": [] },
+        { "nome": "Mamão papaia", "qtd": "120 g", "subs": [] },
+        { "nome": "Psyllium", "qtd": "5 g", "subs": [] }
+      ]
+    },
+    {
+      "grupo": "almoco",
+      "nome": "Almoço 1",
+      "hora": "12:00",
+      "prot": null,
+      "kcal": null,
+      "itens": [
+        { "nome": "Peito de frango sem pele grelhado", "qtd": "1,3 filé médio ou 130 g", "subs": [
+          { "nome": "Patinho grelhado", "qtd": "1 filé pequeno (91,4 g)" },
+          { "nome": "Camarão sem casca refogado", "qtd": "5,2 colher servir cheia (206,8 g)" },
+          { "nome": "Filé de peixe grelhado/assado", "qtd": "1 filé médio (122,6 g)" },
+          { "nome": "Miolo de alcatra grelhada", "qtd": "0,8 filé pequeno (79,4 g)" },
+          { "nome": "Maminha grelhada", "qtd": "1,4 filé pequeno (132,3 g)" },
+          { "nome": "Contra-filé grelhado", "qtd": "1 filé médio (105,9 g)" },
+          { "nome": "Filé mignon grelhado", "qtd": "1 filé pequeno (92,7 g)" },
+          { "nome": "Coxão mole sem gordura cozido", "qtd": "1 filé pequeno (91,9 g)" },
+          { "nome": "Coxão duro sem gordura cozido", "qtd": "?? cortado no print" }
+        ]},
+        { "nome": "Arroz branco cozido", "qtd": "5 colheres de sopa cheias ou 125 g", "subs": [] },
+        { "nome": "Feijão preto cozido", "qtd": "3 colheres sopa cheia ou 51 g", "subs": [] },
+        { "nome": "Salada crua de alface e vegetais variados", "qtd": "à vontade", "subs": [] },
+        { "nome": "Azeite de oliva extravirgem", "qtd": "1 colher de chá ou 2 ml", "subs": [] }
+      ]
+    },
+    {
+      "grupo": "lanche",
+      "nome": "Lanche 1",
+      "hora": "16:00",
+      "prot": null,
+      "kcal": null,
+      "obs": "Fazer um patê de frango ou atum e rechear o pão.",
+      "itens": [
+        { "nome": "Pão de forma", "qtd": "2 fatias ou 50 g", "subs": [] },
+        { "nome": "Frango desfiado", "qtd": "3 colheres de sopa cheias ou 60 g", "subs": [
+          { "nome": "Atum em conserva em óleo", "qtd": "3,4 colheres de sopa cheias (55,9 g)", "duvida": "o modal cobria o alimento de origem; pode ser do pão de forma" }
+        ]},
+        { "nome": "Requeijão vigor light", "qtd": "½ porção ou 15 g", "subs": [
+          { "nome": "Requeijão kamy light", "qtd": "1 porção (30 g)" },
+          { "nome": "Creme de ricota amo light", "qtd": "1 colher de sopa (30 g)" },
+          { "nome": "Requeijão Cremoso Light (Poços de Caldas)", "qtd": "1 colher de sobremesa (23 g)" },
+          { "nome": "Requeijão vigor light", "qtd": "1 porção (30 g)" },
+          { "nome": "Creme de ricota sem lactose Tirolez", "qtd": "1 colher de sopa (30 g)" }
+        ]},
+        { "nome": "Cenoura crua", "qtd": "à vontade", "subs": [] },
+        { "nome": "Alface", "qtd": "1 folha grande ou 15 g", "subs": [] }
+      ]
+    },
+    {
+      "grupo": "lanche",
+      "nome": "Lanche 2",
+      "hora": "16:00",
+      "prot": null,
+      "kcal": null,
+      "itens": [
+        { "nome": "Iogurte natural desnatado Flamboyant 120 g", "qtd": "1 unidade ou 120 g", "subs": [
+          { "nome": "Mamão papaia", "qtd": "1,8 colher de sopa cheia, picado (72,7 g)" },
+          { "nome": "Abacate", "qtd": "0,7 colher sopa cheia (32,7 g)" }
+        ]},
+        { "nome": "Banana prata", "qtd": "1 unidade média ou 40 g", "subs": [] },
+        { "nome": "Canela em pó", "qtd": "1 colher café cheia ou 4 g", "subs": [] },
+        { "nome": "Whey protein concentrado", "qtd": "1 medidor ou 30 g", "subs": [] },
+        { "nome": "Psyllium", "qtd": "5 g", "subs": [] }
+      ]
+    },
+    {
+      "grupo": "lanche",
+      "nome": "Lanche 3",
+      "hora": "16:00",
+      "prot": null,
+      "kcal": null,
+      "itens": [
+        { "nome": "Pão francês sem miolo", "qtd": "1 unidade", "duvida": "o app mostra \"ou 1 g\", que não bate com 1 unidade" , "subs": [] },
+        { "nome": "Frango desfiado", "qtd": "60 g", "subs": [
+          { "nome": "Ovo de galinha", "qtd": "1 unidade (50 g)" }
+        ]},
+        { "nome": "Queijo muçarela light sem lactose", "qtd": "20 g", "subs": [
+          { "nome": "Queijo muçarela", "qtd": "16 g" },
+          { "nome": "Queijo minas frescal light", "qtd": "1 fatia média (30 g)" },
+          { "nome": "Queijo cottage (1% de gordura)", "qtd": "1,9 fatia (69,1 g)" },
+          { "nome": "Queijo minas frescal sem lactose Lacfree Verde Campo", "qtd": "0,7 fatia média (20 g)" }
+        ]},
+        { "nome": "Tomate", "qtd": "2 fatias médias ou 30 g", "subs": [] }
+      ]
+    },
+    {
+      "grupo": "jantar",
+      "nome": "Jantar 1",
+      "hora": "22:00",
+      "prot": null,
+      "kcal": null,
+      "obs": "Receitas para molho de salada. Molho de abacate: 1 colher de sopa de abacate, 1 colher de sopa de suco de limão (resto cortado no print).",
+      "itens": [
+        { "nome": "Peito de frango sem pele grelhado", "qtd": "1,3 filé médio ou 130 g", "subs": [
+          { "nome": "Patinho grelhado", "qtd": "1 filé pequeno (91,4 g)" },
+          { "nome": "Camarão sem casca refogado", "qtd": "5,2 colher servir cheia (206,8 g)" },
+          { "nome": "Filé de peixe grelhado/assado", "qtd": "1 filé médio (122,6 g)" },
+          { "nome": "Miolo de alcatra grelhada", "qtd": "0,8 filé pequeno (79,4 g)" },
+          { "nome": "Maminha grelhada", "qtd": "1,4 filé pequeno (132,3 g)" },
+          { "nome": "Contra-filé grelhado", "qtd": "1 filé médio (105,9 g)" },
+          { "nome": "Filé mignon grelhado", "qtd": "1 filé pequeno (92,7 g)" },
+          { "nome": "Coxão mole sem gordura cozido", "qtd": "1 filé pequeno (91,9 g)" },
+          { "nome": "Coxão duro sem gordura cozido", "qtd": "?? cortado no print" }
+        ]},
+        { "nome": "Arroz integral cozido", "qtd": "4 colheres sopa cheia ou 80 g", "subs": [
+          { "nome": "Arroz branco cozido", "qtd": "2,7 colheres de sopa cheias (68,3 g)" },
+          { "nome": "Batata inglesa", "qtd": "4,9 colheres sopa cheias (120 g)" },
+          { "nome": "Macarrão integral cozido", "qtd": "1,3 colher servir cheia (68,3 g)" },
+          { "nome": "Batata doce (batata abóbora, jerimum, cenoura)", "qtd": "3,1 colher sopa cheia (73,1 g)" },
+          { "nome": "Purê de batata inglesa", "qtd": "3,6 colheres sopa cheias (127,3 g)" },
+          { "nome": "Macarrão cozido", "qtd": "1,3 colheres de servir cheias (68,3 g)" }
+        ]},
+        { "nome": "Salada crua de alface e vegetais variados", "qtd": "à vontade", "subs": [] },
+        { "nome": "Azeite de oliva extravirgem", "qtd": "1 colher de chá ou 2 ml", "subs": [] }
+      ]
+    }
+  ]
+}

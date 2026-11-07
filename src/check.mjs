@@ -2,6 +2,9 @@
    dinheiro, metas e o CRUD das listas. `npm run check`. Sem framework. */
 import assert from 'node:assert/strict';
 import * as D from './store.js';
+import * as T from './treino.js';
+import * as Di from './dieta.js';
+import * as J from './joelho.js';
 
 const hoje = D.iso();
 
@@ -202,5 +205,252 @@ for (const chave of Object.keys(D.SCHEMAS)) {
   assert.ok(D.SCHEMAS[chave].um, `esquema ${chave} sem nome no singular`);
   assert.ok(D.SCHEMAS[chave].campos.length > 0, `esquema ${chave} sem campo`);
 }
+
+/* ---- treino: importação do plano de fora ---- */
+const plano = {
+  opengym_plan: 1,
+  week: { 1: ['A'], 2: ['B'], 4: ['C'] },
+  routines: [
+    { id: 'A', name: 'A · Quadríceps e joelho', emoji: '🦵', prog: 'off', ex: [
+      { id: '2138', mode: 'cardio', sets: 1, min: 5, speed: 20, restOff: true, note: 'Giro solto.' },
+      { id: '0585', sets: 3, reps: 24, side: true, restSec: 60,
+        note: 'Desce em 3 s. Fase Carga: 4 × 10. Fase Potência: 4 × 8 com 2 s parado esticado.' },
+      { id: '0417', sets: 3, reps: 15, restSec: 45, prog: 'double', repsMin: 12, note: 'Segura 1 s.' },
+      { id: 'vac-copenhagen', mode: 'time', sets: 3, sec: 15, side: true, restSec: 30, prog: 'time' },
+    ]},
+    { id: 'B', name: 'B · Superior', emoji: '💪', ex: [
+      { id: '0294', sets: 3, restSec: 0, sg: 'braco', sgName: 'Braços', sgRest: 60, prog: 'double', reps: 12, repsMin: 10 },
+    ]},
+    { id: 'C', name: 'C · Posterior', emoji: '🍑', prog: 'off', ex: [] },
+  ],
+  customEx: [{ id: 'vac-copenhagen', n: 'Prancha Copenhagen', desc: 'De lado, perna de cima no banco.' }],
+};
+const { treinos, split: splitPlano, avisos } = T.importarOpenGym(plano);
+
+assert.equal(treinos.length, 3);
+assert.equal(treinos[0].nome, 'Quadríceps e joelho', 'o prefixo "A · " sai do nome');
+assert.equal(treinos[0].emoji, '🦵');
+
+/* nomes: só o que o arquivo traz. O resto fica com o id à mostra. */
+const [bike, extensora, panturrilha, copen] = treinos[0].ex;
+assert.equal(copen.nome, 'Prancha Copenhagen', 'customEx dá nome');
+assert.equal(extensora.nome, '', 'id numérico não ganha nome inventado');
+assert.deepEqual(avisos.semNome, ['2138', '0585', '0417', '0294'],
+  'todo id sem nome é reportado, uma vez cada');
+
+/* modos: o inglês do arquivo não passa da importação */
+assert.equal(copen.modo, 'tempo', 'mode "time" vira "tempo"');
+assert.equal(bike.modo, 'cardio');
+assert.equal(extensora.modo, 'reps', 'exercício sem mode é reps');
+assert.equal(T.prescricao(bike), '5 min');
+assert.equal(T.prescricao(copen), '3 × 15 s cada lado');
+assert.equal(T.prescricao(extensora), '3 × 12 cada lado',
+  'reps com side é o total das duas pernas; a tela mostra por lado');
+assert.equal(T.prescricao(panturrilha), '3 × 12–15', 'dupla progressão mostra a faixa');
+assert.equal(T.prescricao({ sets: 3, reps: 24, repsMin: 20, lado: true }), '3 × 10–12 cada lado',
+  'a faixa da dupla progressão também vira por lado');
+assert.equal(T.prescricao({ sets: 3, reps: 15, lado: true }), '3 × 15 cada lado',
+  'ímpar não divide: mostra o total em vez de meia repetição');
+assert.equal(T.prescricao({ modo: 'tempo', sets: 3, sec: 25, lado: true }), '3 × 25 s cada lado',
+  'em tempo o segundo já é por lado, não divide');
+
+/* fases: Carga → Ritmo, Potência → Pico */
+assert.deepEqual(extensora.fases, { ritmo: '4 × 10', pico: '4 × 8 com 2 s parado esticado' });
+assert.equal(T.prescricao(extensora, 'ritmo'), '4 × 10');
+assert.equal(T.prescricao(extensora, 'pico'), '4 × 8 com 2 s parado esticado');
+assert.equal(T.prescricao(extensora, 'base'), '3 × 12 cada lado', 'na Base vale a prescrição crua');
+assert.deepEqual(T.fasesDaNota('Giro solto.'), {}, 'nota sem fase não inventa fase');
+assert.deepEqual(T.fasesDaNota(''), {});
+assert.deepEqual(T.fasesDaNota(undefined), {});
+
+/* progressão herdada da rotina, sobreposta pelo exercício */
+assert.equal(bike.prog, 'off', 'herda o prog "off" da rotina A');
+assert.equal(panturrilha.prog, 'double', 'o do exercício vence o da rotina');
+assert.equal(treinos[1].ex[0].prog, 'double', 'rotina sem prog usa o do exercício');
+
+/* descanso */
+assert.equal(T.descansoTxt(bike), 'livre', 'restOff vira livre');
+assert.equal(T.descansoTxt(extensora), '60 s');
+assert.equal(T.descansoTxt(treinos[1].ex[0]), 'emenda', 'restSec 0 com supersérie é emenda');
+assert.equal(T.descansoTxt({ descanso: 0 }), 'sem pausa');
+assert.equal(treinos[1].ex[0].sgNome, 'Braços');
+assert.equal(treinos[1].ex[0].sgDescanso, 60);
+
+/* semana: 1 = SEG, dia sem treino é folga */
+assert.equal(splitPlano.length, 7);
+assert.deepEqual(splitPlano.map(d => d.treinoId), ['A', 'B', '', 'C', '', '', '']);
+assert.equal(splitPlano[0].meta, '🦵 Quadríceps e joelho');
+assert.equal(splitPlano[2].meta, 'folga');
+assert.deepEqual(splitPlano.map(d => d.id), D.DIAS_SEMANA.map(d => d.toLowerCase()));
+
+/* treino do dia: 2026-11-09 é uma segunda */
+const listasPlano = { treinos, split: splitPlano };
+assert.equal(new Date('2026-11-09T12:00:00').getDay(), 1, 'a fixture assume segunda');
+assert.equal(T.treinoDoDia(listasPlano, '2026-11-09').id, 'A');
+assert.equal(T.treinoDoDia(listasPlano, '2026-11-10').id, 'B');
+assert.equal(T.treinoDoDia(listasPlano, '2026-11-11'), null, 'quarta é folga');
+assert.equal(T.treinoDoDia({ split: [], treinos: [] }, '2026-11-09'), null);
+assert.equal(T.treinoDoDia({}, '2026-11-09'), null, 'perfil sem treino não quebra');
+assert.equal(T.treinoDoDia(D.novoPerfil('x').listas, '2026-11-09'), null,
+  'perfil novo nasce sem treino e sem quebrar');
+
+/* preencher nomes depois, sem tocar no resto */
+const comNome = T.comNomes(treinos, { '0585': 'Cadeira extensora' });
+assert.equal(comNome[0].ex[1].nome, 'Cadeira extensora');
+assert.equal(comNome[0].ex[1].fases.ritmo, '4 × 10', 'preencher nome não mexe no resto');
+assert.equal(comNome[0].ex[3].nome, 'Prancha Copenhagen', 'quem já tinha nome fica');
+assert.equal(T.comNomes(treinos, {})[0].ex[1].nome, '', 'mapa vazio não inventa nada');
+
+/* arquivo vazio ou torto não explode */
+assert.deepEqual(T.importarOpenGym({}).treinos, []);
+assert.equal(T.importarOpenGym({}).split.length, 7);
+assert.deepEqual(T.importarOpenGym({}).avisos.semNome, []);
+
+/* ---- dieta: plano de fora, com alternativas no mesmo horário ---- */
+const planoDieta = {
+  totaisDoDia: { prot: 140.4, kcal: 1503 },
+  refeicoes: [
+    { grupo: 'cafe', nome: 'Café da manhã', hora: '07:20', prot: null, kcal: null,
+      itens: [{ nome: 'Ovo de galinha', qtd: '2 unidades ou 100 g', subs: [] }] },
+    { grupo: 'lanche', nome: 'Lanche 1', hora: '16:00', obs: 'Fazer um patê.',
+      itens: [{ nome: 'Pão de forma', qtd: '2 fatias ou 50 g',
+        subs: [{ nome: 'Atum em conserva em óleo', qtd: '3,4 colheres (55,9 g)' }] }] },
+    { grupo: 'lanche', nome: 'Lanche 2', hora: '16:00', itens: [] },
+    { grupo: 'lanche', nome: 'Lanche 3', hora: '16:00', itens: [] },
+  ],
+};
+const dieta = Di.importarPlanoDieta(planoDieta);
+assert.equal(dieta.refeicoes.length, 4);
+assert.equal(dieta.refeicoes[0].prot, '', 'macro ausente vira vazio, nunca número inventado');
+assert.equal(dieta.refeicoes[0].kcal, '');
+assert.equal(dieta.refeicoes[0].o, 'Ovo de galinha', 'o resumo de texto sai dos itens');
+assert.equal(dieta.refeicoes[1].itens[0].subs[0].nome, 'Atum em conserva em óleo');
+assert.equal(dieta.refeicoes[1].obs, 'Fazer um patê.');
+assert.deepEqual(dieta.cfg, { proteina: 140, kcal: 1503 }, 'o total do dia vira meta dos Ajustes');
+assert.deepEqual(Di.importarPlanoDieta({}).refeicoes, [], 'arquivo vazio não explode');
+assert.deepEqual(Di.importarPlanoDieta({}).cfg, {}, 'sem total do dia, não mexe na meta');
+
+const grupos = Di.gruposDeRefeicao(dieta.refeicoes);
+assert.equal(grupos.length, 2, 'os três lanches viram um grupo só');
+assert.equal(grupos[0].nome, 'Café da manhã', 'grupo de uma opção mantém o nome');
+assert.equal(grupos[1].nome, 'Lanche', 'grupo de várias perde o número do fim');
+assert.equal(grupos[1].opcoes.length, 3);
+assert.equal(grupos[1].hora, '16:00');
+assert.deepEqual(Di.gruposDeRefeicao([]), []);
+
+/* marcar uma alternativa já resolve o grupo — não precisa comer as três */
+const ids = dieta.refeicoes.map(r => r.id);
+assert.deepEqual(Di.gruposFeitos(grupos, {}), { feitos: 0, total: 2 });
+assert.deepEqual(Di.gruposFeitos(grupos, { ['rf' + ids[2]]: true }), { feitos: 1, total: 2 },
+  'marcar o Lanche 2 fecha o grupo do lanche');
+assert.deepEqual(Di.gruposFeitos(grupos, { ['rf' + ids[1]]: true, ['rf' + ids[2]]: true }),
+  { feitos: 1, total: 2 }, 'marcar duas alternativas não conta duas vezes');
+assert.deepEqual(Di.gruposFeitos(grupos, { ['rf' + ids[0]]: true, ['rf' + ids[3]]: true }),
+  { feitos: 2, total: 2 });
+
+/* ---- hábito com dia da semana e modo de semana ---- */
+const HS = [
+  { id: 'f1', pilar: 'fac', nome: 'Sai pra faculdade', dias: [0, 1, 2, 3, 4], modo: 'aula' },
+  { id: 'd1', pilar: 'diet', nome: 'Lanche', dias: [0, 1, 2, 3, 4] },
+  { id: 'g1', pilar: 'gym', nome: 'Pesagem', dias: [5] },
+  { id: 'x1', pilar: 'diet', nome: 'Marmita', dias: [], modo: 'ferias' },
+  { id: 'y1', pilar: 'fin', nome: 'Gastos' },               // sem dias nem modo: todo dia
+];
+const comDias = (extra = {}) => ({ ...D.novoPerfil('Pedro'), modo: 'aula', ...extra,
+  listas: { ...D.novoPerfil('Pedro').listas, habitos: HS } });
+
+const seg = '2026-11-09', sab = '2026-11-14', dom = '2026-11-15';
+assert.equal(D.diaIdx(seg), 0, 'segunda é o índice 0, igual ao split');
+assert.equal(D.diaIdx(sab), 5);
+assert.equal(D.diaIdx(dom), 6);
+
+const pAula = comDias();
+assert.deepEqual(D.habitosDoDia(pAula, seg).map(h => h.id), ['f1', 'd1', 'y1'],
+  'segunda com aula: faculdade, lanche e o de todo dia');
+assert.deepEqual(D.habitosDoDia(pAula, sab).map(h => h.id), ['g1', 'y1'], 'sábado: pesagem e o de todo dia');
+assert.deepEqual(D.habitosDoDia(pAula, dom).map(h => h.id), ['y1'], 'domingo: só o de todo dia');
+
+const pFerias = comDias({ modo: 'ferias' });
+assert.deepEqual(D.habitosDoDia(pFerias, seg).map(h => h.id), ['d1', 'x1', 'y1'],
+  'sem aula: cai a faculdade e entra a marmita');
+assert.ok(D.valeNoDia({ }, pAula, seg), 'hábito sem dias nem modo vale sempre');
+
+/* o ponto da história: o dia divide só pelos hábitos do dia */
+const dAula = { ...comDias(), dias: { [sab]: { g1: 'sim', y1: 'sim' } } };
+assert.equal(D.pctDoDia(dAula, sab), 100,
+  'sábado com os dois hábitos do dia feitos é 100%, não 40% dos cinco cadastrados');
+
+/* dia sem hábito nenhum não soma na sequência nem a quebra */
+const soSegunda = { ...D.novoPerfil('Pedro'), modo: 'aula',
+  listas: { ...D.novoPerfil('Pedro').listas, habitos: [{ id: 'a', pilar: 'gym', nome: 'Treino', dias: [0] }] } };
+assert.equal(D.diaPassou(soSegunda, sab), null, 'sábado não tem hábito: nem passou nem falhou');
+assert.equal(D.diaPassou({ ...soSegunda, dias: { [seg]: { a: 'sim' } } }, seg), true);
+const atravessa = { ...soSegunda, dias: { '2026-11-02': { a: 'sim' }, [seg]: { a: 'sim' } } };
+assert.equal(D.sequencia(atravessa, seg), 2,
+  'duas segundas seguidas contam 2: os dias vazios no meio não quebram');
+
+/* ---- joelho: semáforo, autotestes e volta ao campo ---- */
+assert.equal(J.luzDo({ ok: true, dor: 0, inchaco: 0 }), 'verde');
+assert.equal(J.luzDo({ ok: true, dor: 3, inchaco: 0 }), 'amarelo', 'dor 3 já é amarelo');
+assert.equal(J.luzDo({ ok: true, dor: 0, inchaco: 1 }), 'amarelo');
+assert.equal(J.luzDo({ ok: true, dor: 5, inchaco: 0 }), 'vermelho', 'dor 5 é vermelho');
+assert.equal(J.luzDo({ ok: true, dor: 0, inchaco: 2 }), 'vermelho');
+assert.equal(J.luzDo({ ok: true, dor: 0, inchaco: 0, falseou: true }), 'vermelho', 'falseou é vermelho direto');
+assert.equal(J.luzDo({ ok: false }), null, 'sem check não inventa cor');
+assert.equal(J.luzDo(undefined), null);
+
+assert.equal(J.lsi(36, 40), 90);
+assert.equal(J.lsi(30, 40), 75);
+assert.equal(J.lsi(10, 0), null, 'esquerda zero não divide por zero');
+
+const tOk = { data: '2026-11-01', sts: { d: 18, e: 20 }, ponte: { d: 19, e: 20 }, panturrilha: { d: 27, e: 30 } };
+const tRuim = { data: '2026-11-02', sts: { d: 14, e: 20 }, ponte: { d: 19, e: 20 }, panturrilha: { d: 27, e: 30 } };
+assert.equal(J.simetriaOk([tOk]), true, '90, 95 e 90 por cento passam');
+assert.equal(J.simetriaOk([tRuim]), false, 'um teste a 70% reprova o conjunto');
+assert.equal(J.simetriaOk([tOk, tRuim]), false, 'vale o último teste, não o melhor');
+assert.equal(J.simetriaOk([]), false);
+assert.equal(J.simetriaOk([{ data: '2026-11-01', sts: { d: 18, e: 20 } }]), false,
+  'teste incompleto não passa');
+assert.equal(J.ultimoTeste([tRuim, tOk]).data, '2026-11-02', 'o último é por data, não por ordem na lista');
+assert.equal(J.linhasDoTeste(tOk).length, 3);
+assert.equal(J.linhasDoTeste(tOk)[0].lsi, 90);
+assert.equal(J.linhasDoTeste(tOk)[0].ok, true);
+assert.deepEqual(J.linhasDoTeste(null), []);
+
+/* reteste a cada 28 dias */
+const rtNunca = J.reteste([], '2026-11-07');
+assert.equal(rtNunca.nunca, true);
+assert.equal(rtNunca.devido, true, 'sem teste nenhum já está devendo o primeiro');
+const rtNovo = J.reteste([{ ...tOk, data: '2026-11-01' }], '2026-11-07');
+assert.equal(rtNovo.prox, '2026-11-29');
+assert.equal(rtNovo.faltam, 22);
+assert.equal(rtNovo.devido, false);
+const rtHoje = J.reteste([{ ...tOk, data: '2026-10-10' }], '2026-11-07');
+assert.equal(rtHoje.prox, '2026-11-07', '10/10 mais 28 dias cai em 07/11');
+assert.equal(rtHoje.faltam, 0);
+assert.equal(rtHoje.devido, true, 'no próprio dia já vence');
+assert.equal(J.reteste([{ ...tOk, data: '2026-10-10' }], '2026-11-06').devido, false,
+  'na véspera ainda não venceu');
+const rtAtrasado = J.reteste([{ ...tOk, data: '2026-10-01' }], '2026-11-07');
+assert.equal(rtAtrasado.faltam, -9, 'atrasado conta em dias negativos');
+assert.equal(rtAtrasado.devido, true);
+
+assert.equal(J.voltaAoCampo({}, []).feitos, 0);
+assert.equal(J.voltaAoCampo({}, []).total, 8);
+assert.equal(J.voltaAoCampo({}, [tOk]).feitos, 1, 'os autotestes marcam o critério sozinhos');
+const todos = Object.fromEntries(J.CRITERIOS.filter(c => !c.auto).map(c => [c.k, true]));
+assert.equal(J.voltaAoCampo(todos, []).liberado, false, 'falta o automático');
+assert.equal(J.voltaAoCampo(todos, [tOk]).liberado, true);
+
+/* joelho no vermelho troca o treino do dia pela recuperação */
+const comRec = { treinos: [...treinos, { id: 'REC', nome: 'Recuperação', emoji: '🩹', ex: [] }], split: splitPlano };
+assert.equal(T.treinoDoDia(comRec, '2026-11-09').id, 'A', 'sem check, o treino do dia');
+assert.equal(T.treinoDoDia(comRec, '2026-11-09', 'verde').id, 'A');
+assert.equal(T.treinoDoDia(comRec, '2026-11-09', 'amarelo').id, 'A', 'amarelo treina igual, mais leve');
+assert.equal(T.treinoDoDia(comRec, '2026-11-09', 'vermelho').id, 'REC', 'vermelho vira recuperação');
+assert.equal(T.treinoDoDia(comRec, '2026-11-11', 'vermelho').id, 'REC', 'vale até no dia de folga');
+assert.equal(T.treinoDoDia(listasPlano, '2026-11-09', 'vermelho'), null,
+  'plano sem rotina de recuperação devolve nada, nunca o treino de perna');
+assert.equal(T.recuperacao([{ id: 'z', nome: 'Dia de recuperação' }]).id, 'z', 'acha pelo nome também');
 
 console.log('ok — todas as regras do Ritmo passaram');

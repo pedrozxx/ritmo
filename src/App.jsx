@@ -5,13 +5,15 @@ import {
   motion, AnimatePresence, MotionConfig, useMotionValue, useTransform, animate, useAnimation,
 } from 'framer-motion';
 import * as D from './store.js';
+import * as J from './joelho.js';
 import { TELAS } from './screens.jsx';
 import { Folha, Gerenciador } from './editor.jsx';
 import { Anim, Ico, LISTA, SUAVE, MOLA_CALMA } from './ui.jsx';
 
 const MENU = [
   ['hoje', 'Hoje', 'hoje'], ['percurso', 'Percurso', 'percurso'], ['rotina', 'Rotina', 'rotina'],
-  ['academia', 'Academia', 'gym'], ['dieta', 'Dieta', 'diet'], ['faculdade', 'Faculdade', 'fac'],
+  ['academia', 'Academia', 'gym'], ['joelho', 'Joelho', 'gym'],
+  ['dieta', 'Dieta', 'diet'], ['faculdade', 'Faculdade', 'fac'],
   ['estagio', 'Estágio', 'est'], ['financeiro', 'Financeiro', 'fin'], ['metas', 'Metas', 'metas'],
   ['ajustes', 'Ajustes', 'ajustes'],
 ];
@@ -30,6 +32,11 @@ const subtitulo = (tela, s) => {
     percurso: `Dia ${c.dia} de ${D.CICLO_DIAS} · fase ${c.fase.nome}`,
     rotina: `${s.listas.habitos.length} ${s.listas.habitos.length === 1 ? 'hábito' : 'hábitos'} em ${D.PILARES.length} pilares`,
     academia: `${D.diasComPilar(s, 'gym')} dias de treino no mês`,
+    joelho: (() => {
+      const luz = J.luzDoDia(s, D.iso());
+      const v = J.voltaAoCampo(s.volta, s.listas.testes);
+      return `${luz ? `Hoje no ${luz}` : 'Sem check hoje'} · ${v.feitos} de ${v.total} critérios`;
+    })(),
     dieta: m.total ? `${m.feitas} de ${m.total} refeições · ${m.prot} g` : 'sem refeições cadastradas',
     faculdade: `${s.listas.materias.length} ${s.listas.materias.length === 1 ? 'matéria' : 'matérias'}`,
     estagio: `${String(D.horasDaSemana(s).reduce((t, d) => t + d.horas, 0)).replace('.', ',')}h de ${s.cfg.horasSemana}h na semana`,
@@ -102,6 +109,20 @@ export default function App() {
     setCampo: (k, v) => setS(p => ({ ...p, [k]: v })),
     setCfg: (k, v) => setS(p => ({ ...p, cfg: { ...p.cfg, [k]: v === '' ? 0 : Number(v) } })),
     reiniciarCiclo: () => setS(p => ({ ...p, cicloInicio: D.iso() })),
+    /* plano de treino vindo de fora; substitui as rotinas e a divisão da semana */
+    importarPlano: (treinos, split) => setS(p => ({
+      ...p, listas: { ...p.listas, treinos, split },
+    })),
+    /* dieta de fora: troca as refeições e puxa o total do dia pras metas */
+    importarDieta: (refeicoes, cfg) => setS(p => ({
+      ...p, cfg: { ...p.cfg, ...cfg }, listas: { ...p.listas, refeicoes },
+    })),
+    /* rotina de fora: troca os hábitos, mantendo o histórico dos dias */
+    importarRotina: habitos => setS(p => ({ ...p, listas: { ...p.listas, habitos } })),
+    /* joelho: o check do dia, os autotestes e os critérios de volta */
+    setJoelho: check => setS(p => ({ ...p, joelho: { ...p.joelho, [D.iso()]: check } })),
+    setVolta: (k, v) => setS(p => ({ ...p, volta: { ...p.volta, [k]: v } })),
+    addTeste: t => setS(p => D.comItem(p, 'testes', { ...t, data: D.iso() })),
     apagarPerfil: () => setS(p => D.novoPerfil(p.nome)),
     gerir: (chave, filtro, titulo) => setGestor({ chave, filtro, titulo }),
   }), []);
@@ -135,7 +156,10 @@ export default function App() {
             </p>
             <motion.div className="nav" animate={menu ? 'show' : 'hide'}
               variants={{ hide: {}, show: { transition: { staggerChildren: .034, delayChildren: .06 } } }}>
-              {MENU.map(([id, nome, icon]) => (
+              {/* Joelho só existe pra quem importou um plano de treino — o perfil
+                  que não tem plano nem vê a aba */}
+              {MENU.filter(([id]) => id !== 'joelho' || (s.listas.treinos || []).length > 0)
+                .map(([id, nome, icon]) => (
                 <motion.button key={id} className="nav-item" onClick={() => a.go(id)}
                   aria-current={tela === id ? 'page' : undefined}
                   variants={{ hide: { opacity: 0, x: -18 }, show: { opacity: 1, x: 0 } }}

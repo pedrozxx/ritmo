@@ -1,0 +1,444 @@
+{
+  "opengym_plan": 1,
+  "exported": "2026-10-30",
+  "name": "Volta ao Campo · academia",
+  "unit": "kg",
+  "week": {
+    "1": [
+      "A"
+    ],
+    "2": [
+      "B"
+    ],
+    "4": [
+      "C"
+    ],
+    "5": [
+      "D"
+    ],
+    "6": [
+      "S"
+    ]
+  },
+  "routines": [
+    {
+      "id": "A",
+      "name": "A · Quadríceps e joelho",
+      "emoji": "🦵",
+      "prog": "off",
+      "ex": [
+        {
+          "id": "2138",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 5,
+          "speed": 20,
+          "restOff": true,
+          "note": "Giro solto, subindo a carga aos poucos. Sem bike livre: esteira caminhando rápido. Antes do primeiro exercício pesado, 1 ou 2 séries leves dele."
+        },
+        {
+          "id": "0585",
+          "sets": 3,
+          "reps": 24,
+          "side": true,
+          "restSec": 60,
+          "note": "Uma perna de cada vez, comece pela direita e use a mesma carga na esquerda. Desce em 3 s. Doeu na frente do joelho: só entre 90° e 45° de dobra. A cada 4 semanas anote a carga máxima de 10 reps em cada perna; direita abaixo de 90% da esquerda = quadríceps ainda atrás. Fase Carga: 4 × 10. Fase Potência: 4 × 8 com 2 s parado esticado."
+        },
+        {
+          "id": "0739",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 90,
+          "note": "Pés na largura do quadril, desce até 90° de joelho, não trava em cima. Sem leg press: mais 3 séries de goblet. Fase Carga: 4 × 10 uma perna por vez. Fase Potência: 4 × 8 uma perna, desce em 3 s."
+        },
+        {
+          "id": "1760",
+          "sets": 3,
+          "reps": 10,
+          "restSec": 90,
+          "note": "Desce em 3 s até a coxa paralela, nunca abaixo antes de o fisio liberar. Joelho alinhado com o pé. Fase Carga: 4 × 8 com 2 s embaixo. Fase Potência: 4 × 8 mais pesado."
+        },
+        {
+          "id": "2290",
+          "sets": 3,
+          "reps": 16,
+          "side": true,
+          "restSec": 75,
+          "note": "Halteres leves. Joelho da frente alinhado com o segundo dedo do pé. Faça uma série extra na direita. Fase Carga: 3 × 10. Fase Potência: 4 × 8 mais pesado."
+        },
+        {
+          "id": "0417",
+          "sets": 3,
+          "reps": 15,
+          "restSec": 45,
+          "prog": "double",
+          "repsMin": 12,
+          "note": "Ponta do pé num degrau, segura 1 s em cima. Fase Potência: uma perna de cada vez."
+        },
+        {
+          "id": "1470",
+          "mode": "time",
+          "sets": 3,
+          "sec": 25,
+          "side": true,
+          "restSec": 20,
+          "prog": "time",
+          "note": "Fase Carga: 35 s. Fase Potência: 30 s com a perna de cima elevada."
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "B · Superior e bike intervalado",
+      "emoji": "💪",
+      "ex": [
+        {
+          "id": "2138",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 5,
+          "speed": 20,
+          "restOff": true,
+          "note": "Giro solto, subindo a carga aos poucos. Sem bike livre: esteira caminhando rápido. Antes do primeiro exercício pesado, 1 ou 2 séries leves dele."
+        },
+        {
+          "id": "0289",
+          "sets": 3,
+          "restSec": 90,
+          "prog": "double",
+          "reps": 10,
+          "repsMin": 8,
+          "note": "Carga: a que deixa umas 2 repetições sobrando na última série."
+        },
+        {
+          "id": "0198",
+          "sets": 3,
+          "restSec": 75,
+          "prog": "double",
+          "reps": 12,
+          "repsMin": 10,
+          "subs": [
+            "0027"
+          ],
+          "note": "Puxa até a parte de cima do peito, sem jogar o tronco. Sem puxador: remada curvada com barra (já está como substituto)."
+        },
+        {
+          "id": "0405",
+          "sets": 3,
+          "restSec": 75,
+          "prog": "double",
+          "reps": 10,
+          "repsMin": 8,
+          "note": "Sentado com encosto, sem arquear a lombar."
+        },
+        {
+          "id": "0292",
+          "sets": 3,
+          "side": true,
+          "restSec": 60,
+          "prog": "double",
+          "reps": 24,
+          "repsMin": 20,
+          "note": "Mão apoiada no banco, cotovelo rente ao corpo."
+        },
+        {
+          "id": "2500",
+          "sets": 3,
+          "restSec": 45,
+          "prog": "double",
+          "reps": 15,
+          "repsMin": 12,
+          "note": "Leve, juntando as escápulas."
+        },
+        {
+          "id": "0294",
+          "sets": 3,
+          "restSec": 0,
+          "sg": "braco",
+          "sgName": "Braços",
+          "sgRest": 60,
+          "prog": "double",
+          "reps": 12,
+          "repsMin": 10
+        },
+        {
+          "id": "2188",
+          "sets": 3,
+          "restSec": 0,
+          "sg": "braco",
+          "sgName": "Braços",
+          "sgRest": 60,
+          "prog": "double",
+          "reps": 12,
+          "repsMin": 10
+        },
+        {
+          "id": "2138",
+          "mode": "time",
+          "sets": 6,
+          "sec": 30,
+          "restSec": 90,
+          "prog": "off",
+          "note": "Intervalado: os 30 s são forte (8 de 10). O descanso é giro leve, sem parar de pedalar. Fase Carga: 8 séries com 60 s leve. Fase Potência: 10 séries com 45 s leve."
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "name": "C · Posterior, glúteo e aterrissagem",
+      "emoji": "🍑",
+      "prog": "off",
+      "ex": [
+        {
+          "id": "2138",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 5,
+          "speed": 20,
+          "restOff": true,
+          "note": "Giro solto, subindo a carga aos poucos. Sem bike livre: esteira caminhando rápido. Antes do primeiro exercício pesado, 1 ou 2 séries leves dele."
+        },
+        {
+          "id": "4051",
+          "sets": 2,
+          "reps": 30,
+          "side": true,
+          "restSec": 30,
+          "note": "Perna de cima esticada, pé apontando pra frente, sobe um palmo e desce devagar. Acorda o glúteo médio."
+        },
+        {
+          "id": "vac-landing",
+          "sets": 3,
+          "reps": 6,
+          "restSec": 60
+        },
+        {
+          "id": "4742",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 75,
+          "prog": "double",
+          "repsMin": 10,
+          "note": "Costas no banco na altura das escápulas, aperta o glúteo 1 s em cima, canela vertical. Fase Carga: 4 × 10. Fase Potência: 4 × 8."
+        },
+        {
+          "id": "0432",
+          "sets": 3,
+          "reps": 10,
+          "restSec": 90,
+          "note": "Joelho levemente dobrado, quadril pra trás, costas retas. Fase Carga: 4 × 8. Fase Potência: 4 × 8 descendo em 3 s."
+        },
+        {
+          "id": "0586",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 60,
+          "note": "Desce em 3 s. Se o enxerto do LCA saiu do posterior e doer ali, metade da carga. Fase Carga: 3 × 10 uma perna. Fase Potência: 4 × 8 uma perna."
+        },
+        {
+          "id": "0431",
+          "sets": 3,
+          "reps": 20,
+          "side": true,
+          "restSec": 60,
+          "note": "Pé inteiro no banco, sobe pelo calcanhar sem impulso da perna de baixo. Uma série extra na direita. Fase Potência: 4 × 8 mais pesado."
+        },
+        {
+          "id": "vac-copenhagen",
+          "mode": "time",
+          "sets": 3,
+          "sec": 15,
+          "side": true,
+          "restSec": 30,
+          "prog": "time",
+          "note": "Joelho apoiado nas fases Base e Carga (25 s na Carga). Fase Potência: perna esticada, 20 s."
+        }
+      ]
+    },
+    {
+      "id": "D",
+      "name": "D · Corpo todo e condicionamento",
+      "emoji": "🔥",
+      "ex": [
+        {
+          "id": "2138",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 5,
+          "speed": 20,
+          "restOff": true,
+          "note": "Giro solto, subindo a carga aos poucos. Sem bike livre: esteira caminhando rápido. Antes do primeiro exercício pesado, 1 ou 2 séries leves dele."
+        },
+        {
+          "id": "0314",
+          "sets": 3,
+          "restSec": 75,
+          "prog": "double",
+          "reps": 10,
+          "repsMin": 8,
+          "note": "Banco a uns 30°. Sem banco inclinado: flexão com os pés no banco."
+        },
+        {
+          "id": "0027",
+          "sets": 3,
+          "restSec": 75,
+          "prog": "double",
+          "reps": 10,
+          "repsMin": 8,
+          "note": "Tronco a 45°, costas retas, puxa até o umbigo."
+        },
+        {
+          "id": "0381",
+          "sets": 3,
+          "reps": 16,
+          "side": true,
+          "restSec": 75,
+          "prog": "off",
+          "note": "Pra trás é mais gentil com o joelho do que pra frente. Fase Carga: 3 × 10. Fase Potência: 4 × 8 mais pesado."
+        },
+        {
+          "id": "2133",
+          "mode": "time",
+          "sets": 3,
+          "sec": 40,
+          "restSec": 60,
+          "prog": "off",
+          "note": "Halter pesado em cada mão, tronco alto, passos curtos. Fase Carga: 45 s mais pesado."
+        },
+        {
+          "id": "3699",
+          "sets": 3,
+          "reps": 20,
+          "side": true,
+          "restSec": 45,
+          "prog": "off",
+          "note": "Prancha com braços esticados, quadril sem balançar. Fase Potência: pés juntos, 12 toques."
+        },
+        {
+          "id": "2138",
+          "mode": "time",
+          "sets": 8,
+          "sec": 30,
+          "restSec": 60,
+          "prog": "off",
+          "note": "Intervalado: 30 s forte, descanso pedalando leve. Fase Carga: 40 s forte e 40 s leve."
+        },
+        {
+          "id": "1511",
+          "mode": "time",
+          "sets": 1,
+          "sec": 30,
+          "side": true,
+          "restOff": true,
+          "prog": "off",
+          "note": "Volta à calma: quadríceps, posterior e flexor do quadril, 30 s cada lado."
+        }
+      ]
+    },
+    {
+      "id": "S",
+      "name": "Corrida leve",
+      "emoji": "🏃",
+      "prog": "off",
+      "ex": [
+        {
+          "id": "0685",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 40,
+          "speed": 7,
+          "note": "Caminhada de aquecimento, depois o nível de trote/caminhada em que você está no Volta ao Campo. Só sobe de nível se o joelho estiver verde no dia seguinte."
+        }
+      ]
+    },
+    {
+      "id": "REC",
+      "name": "Recuperação (joelho no vermelho)",
+      "emoji": "🩹",
+      "ex": [
+        {
+          "id": "2138",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 10,
+          "speed": 20,
+          "restOff": true,
+          "note": "Bem leve. Se a bike incomodar o joelho, pula e vai direto pro superior."
+        },
+        {
+          "id": "0198",
+          "sets": 3,
+          "restSec": 75,
+          "prog": "double",
+          "reps": 12,
+          "repsMin": 10
+        },
+        {
+          "id": "0292",
+          "sets": 3,
+          "side": true,
+          "restSec": 60,
+          "prog": "double",
+          "reps": 24,
+          "repsMin": 20
+        },
+        {
+          "id": "0405",
+          "sets": 3,
+          "restSec": 75,
+          "prog": "double",
+          "reps": 10,
+          "repsMin": 8
+        },
+        {
+          "id": "2500",
+          "sets": 3,
+          "restSec": 45,
+          "prog": "double",
+          "reps": 15,
+          "repsMin": 12
+        },
+        {
+          "id": "0276",
+          "sets": 3,
+          "reps": 20,
+          "side": true,
+          "restSec": 30,
+          "prog": "off",
+          "note": "Lombar colada no chão."
+        }
+      ]
+    }
+  ],
+  "customEx": [
+    {
+      "id": "vac-landing",
+      "n": "Aterrissagem travada",
+      "bp": "upper legs",
+      "eq": "body weight",
+      "desc": "Base: snap down + salto baixo, trava 2 s embaixo (3 × 6). Carga: salto lateral sobre uma linha, 3 × 6 cada lado. Potência: salto curto numa perna, 3 × 5 cada perna, só depois que os autotestes passarem de 90%. Aterrissa macio, joelho alinhado com o pé, quadril pra trás. Saiu feio, encerra a série.",
+      "tg": "quadriceps",
+      "primaries": [
+        "quadriceps",
+        "gluteal"
+      ],
+      "secondaries": [
+        "calves"
+      ]
+    },
+    {
+      "id": "vac-copenhagen",
+      "n": "Prancha Copenhagen",
+      "bp": "upper legs",
+      "eq": "body weight",
+      "desc": "De lado, perna de cima apoiada no banco (joelho apoiado nas fases Base e Carga, pé na Potência). Sobe o quadril e segura. Protege a virilha, que sofre muito no futebol.",
+      "tg": "adductors",
+      "primaries": [
+        "adductors"
+      ],
+      "secondaries": [
+        "obliques"
+      ]
+    }
+  ]
+}

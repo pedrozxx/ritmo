@@ -32,6 +32,9 @@ export const SCHEMAS = {
   habitos: { um: 'hábito', campos: [
     { k: 'nome', rot: 'O que é', tipo: 'texto', obrig: true, dica: 'Fui pra academia' },
     { k: 'meta', rot: 'Detalhe', tipo: 'texto', dica: 'Push B às 18h' },
+    { k: 'dias', rot: 'Em que dias', tipo: 'dias' },
+    { k: 'modo', rot: 'Em qual semana', tipo: 'escolha', padrao: '',
+      ops: [['', 'Nas duas'], ['aula', 'Só com aula'], ['ferias', 'Só sem aula']] },
   ]},
   refeicoes: { um: 'refeição', campos: [
     { k: 'nome', rot: 'Refeição', tipo: 'texto', obrig: true, dica: 'Almoço' },
@@ -114,6 +117,21 @@ export function faltam(k, ref = iso()) {
 /* ---- rotina ---- */
 export const habitosDo = (s, pilarId) => s.listas.habitos.filter(h => h.pilar === pilarId);
 
+/* Hábito pode valer só em alguns dias e só num modo de semana.
+   `dias` usa 0 = SEG … 6 = DOM, igual ao split; vazio quer dizer todo dia.
+   `modo` vazio vale nos dois (com aula e sem aula). */
+export const MODOS_SEMANA = [['aula', 'Com aula'], ['ferias', 'Sem aula']];
+export const diaIdx = k => (emDia(k).getDay() + 6) % 7;
+
+export function valeNoDia(h, s, k) {
+  if (h.modo && h.modo !== (s.modo || 'aula')) return false;
+  if (!h.dias || !h.dias.length) return true;
+  return h.dias.includes(diaIdx(k));
+}
+export const habitosDoDia = (s, k = iso()) => s.listas.habitos.filter(h => valeNoDia(h, s, k));
+export const habitosDoPilarNoDia = (s, pilarId, k = iso()) =>
+  habitosDoDia(s, k).filter(h => h.pilar === pilarId);
+
 /* conta só os hábitos que existem hoje: hábito apagado não pode inflar o dia */
 export function pctDia(resp, habitos) {
   if (!resp || !habitos || !habitos.length) return 0;
@@ -127,18 +145,26 @@ export function pctPilar(resp, itens) {
   const sim = itens.filter(i => resp && resp[i.id] === 'sim').length;
   return Math.round((sim / itens.length) * 100);
 }
-export const pctDoDia = (s, k = iso()) => pctDia(s.dias[k], s.listas.habitos);
+export const pctDoDia = (s, k = iso()) => pctDia(s.dias[k], habitosDoDia(s, k));
+
+/* true passou, false não passou, null não havia hábito nenhum marcado pra esse
+   dia — nesse caso o dia não soma na sequência e também não a quebra. */
+export function diaPassou(s, k, meta = s.cfg.metaDia) {
+  const h = habitosDoDia(s, k);
+  if (!h.length) return null;
+  return pctDia(s.dias[k], h) >= meta;
+}
 
 /* O dia de hoje ainda está aberto: enquanto não bate a meta ele não quebra
    a sequência, só não soma. Por isso a contagem começa em ontem. */
 export function sequencia(s, ref = iso()) {
-  const meta = s.cfg.metaDia;
   if (!s.listas.habitos.length) return 0;
-  let n = pctDoDia(s, ref) >= meta ? 1 : 0;
+  let n = diaPassou(s, ref) === true ? 1 : 0;
   let k = maisDias(ref, -1);
   for (let guarda = 0; guarda < 3650; guarda++) {
-    if (pctDoDia(s, k) < meta) break;
-    n++;
+    const p = diaPassou(s, k);
+    if (p === false) break;        // dia ruim corta
+    if (p === true) n++;           // dia sem hábito nenhum: atravessa sem somar
     k = maisDias(k, -1);
   }
   return n;
@@ -151,8 +177,10 @@ export function semana(s, ref = iso()) {
   });
 }
 export function semanaPilar(s, pilarId, ref = iso()) {
-  const itens = habitosDo(s, pilarId);
-  return semana(s, ref).map(d => ({ ...d, pct: s.dias[d.k] ? pctPilar(s.dias[d.k], itens) : null }));
+  return semana(s, ref).map(d => ({
+    ...d,
+    pct: s.dias[d.k] ? pctPilar(s.dias[d.k], habitosDoPilarNoDia(s, pilarId, d.k)) : null,
+  }));
 }
 /* dias do mês em que o pilar teve pelo menos uma resposta "sim" */
 export function diasComPilar(s, pilarId, ref = iso()) {
@@ -165,20 +193,25 @@ export const contarHabito = (s, id, ref = iso()) =>
   Object.entries(s.dias).filter(([k, r]) => k.slice(0, 7) === ref.slice(0, 7) && r[id] === 'sim').length;
 
 /* quantos dos últimos n dias o pilar ficou em pé (75% dele ou mais) */
+/* dia em que o pilar não tem hábito nenhum não entra na conta: não é falha */
 export function aderenciaPilar(s, pilarId, n = 7, ref = iso()) {
-  const itens = habitosDo(s, pilarId);
-  let bons = 0;
-  for (let i = 0; i < n; i++) if (pctPilar(s.dias[maisDias(ref, -i)], itens) >= 75) bons++;
-  return { bons, n, pct: Math.round((bons / n) * 100) };
+  let bons = 0, contados = 0;
+  for (let i = 0; i < n; i++) {
+    const k = maisDias(ref, -i);
+    const itens = habitosDoPilarNoDia(s, pilarId, k);
+    if (!itens.length) continue;
+    contados++;
+    if (pctPilar(s.dias[k], itens) >= 75) bons++;
+  }
+  return { bons, n: contados, pct: contados ? Math.round((bons / contados) * 100) : 0 };
 }
 /* treinos por semana nas últimas n semanas — serve de gráfico sem dado inventado */
 export function porSemana(s, pilarId, n = 7, ref = iso()) {
-  const itens = habitosDo(s, pilarId);
   return Array.from({ length: n }, (_, w) => {
     let dias = 0;
     for (let i = 0; i < 7; i++) {
       const k = maisDias(ref, -((n - 1 - w) * 7 + (6 - i)));
-      if (k <= ref && pctPilar(s.dias[k], itens) > 0) dias++;
+      if (k <= ref && pctPilar(s.dias[k], habitosDoPilarNoDia(s, pilarId, k)) > 0) dias++;
     }
     return dias;
   });
@@ -206,8 +239,10 @@ export function aderencia(s, ref = iso()) {
   for (let i = 0; i < CICLO_DIAS; i++) {
     const k = maisDias(s.cicloInicio, i);
     if (k > ref) break;
+    const p = diaPassou(s, k);
+    if (p === null) continue;       // dia sem hábito nenhum não entra na conta
     contados++;
-    if (pctDoDia(s, k) >= s.cfg.metaDia) bons++;
+    if (p) bons++;
   }
   return { bons, contados, pct: contados ? Math.round((bons / contados) * 100) : 0 };
 }
@@ -220,8 +255,10 @@ export function semanasDoCiclo(s, ref = iso()) {
       if (idx >= CICLO_DIAS) break;
       const k = maisDias(s.cicloInicio, idx);
       if (k > ref) break;
+      const p = diaPassou(s, k);
+      if (p === null) continue;
       contados++;
-      if (pctDoDia(s, k) >= s.cfg.metaDia) bons++;
+      if (p) bons++;
     }
     return { semana: w + 1, contados, atual: w + 1 === atual, pct: contados ? Math.round((bons / contados) * 100) : null };
   });
@@ -325,6 +362,9 @@ export const novoPerfil = nome => ({
   nome,
   anim: true,
   tema: 'sistema',
+  modo: 'aula',     // semana com aula ou sem aula; muda quais hábitos valem
+  joelho: {},       // por dia: 'verde' | 'amarelo' | 'vermelho'
+  volta: {},        // critérios de volta ao futebol marcados na mão
   cicloInicio: iso(),
   cfg: { ...CFG_PADRAO },
   dias: {},
@@ -332,9 +372,11 @@ export const novoPerfil = nome => ({
   tx: [],
   listas: {
     habitos: [], refeicoes: [], exercicios: [], materias: [], entregas: [], tarefas: [], metas: [],
+    treinos: [],   // rotinas importadas de fora; vazio até alguém importar
+    testes: [],    // autotestes de simetria entre as pernas
     cats: ['Alimentação', 'Transporte', 'Academia', 'Faculdade', 'Lazer', 'Renda']
       .map(n => ({ id: novoId(), nome: n })),
-    split: DIAS_SEMANA.map(d => ({ id: d.toLowerCase(), nome: d, meta: '' })),
+    split: DIAS_SEMANA.map(d => ({ id: d.toLowerCase(), nome: d, meta: '', treinoId: '' })),
   },
 });
 
@@ -348,6 +390,7 @@ export function carregarPerfil(id) {
       ...base, ...s,
       cfg: { ...base.cfg, ...s.cfg },
       dias: s.dias || {}, extra: s.extra || {}, tx: s.tx || [],
+      joelho: s.joelho || {}, volta: s.volta || {}, modo: s.modo || 'aula',
       listas: { ...base.listas, ...s.listas },
     };
   } catch {

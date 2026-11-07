@@ -1,0 +1,34 @@
+{
+  "_": "Rotina do Pedro, transcrita dos avisos .ics do Volta ao Campo (criacao-rotina, avisos/avisos-com-aula.ics e avisos-sem-aula.ics). dias: 0=SEG … 6=DOM, igual ao split. modo vazio vale nas duas semanas; 'aula' só na semana com faculdade, 'ferias' só sem.",
+  "habitos": [
+    { "pilar": "fac", "nome": "Sai pra faculdade", "meta": "08h00 · uns 25 min de trajeto, chega com 5 de folga",
+      "dias": [0, 1, 2, 3, 4], "modo": "aula" },
+
+    { "pilar": "diet", "nome": "Lanche da tarde", "meta": "16h00 · fruta e iogurte, ou sanduíche de frango ou ovo, levado de casa",
+      "dias": [0, 1, 2, 3, 4], "modo": "" },
+
+    { "pilar": "diet", "nome": "Separa marmita, lanche e garrafa", "meta": "antes de sair",
+      "dias": [0, 1, 2, 3, 4], "modo": "ferias" },
+
+    { "pilar": "gym", "nome": "Chega e troca de roupa na hora", "meta": "19h30 seg, ter e qui · 18h30 sex",
+      "dias": [0, 1, 3, 4], "modo": "aula" },
+
+    { "pilar": "gym", "nome": "Fiz o treino do dia", "meta": "o que estiver na aba Academia",
+      "dias": [0, 1, 3, 4, 5], "modo": "" },
+
+    { "pilar": "gym", "nome": "Opcional: pedal leve ou caminhada", "meta": "quarta, dia sem treino de força",
+      "dias": [2], "modo": "" },
+
+    { "pilar": "gym", "nome": "Caminhada de 20 a 30 min", "meta": "sexta, antes do treino",
+      "dias": [4], "modo": "ferias" },
+
+    { "pilar": "gym", "nome": "Pesagem e cintura", "meta": "08h05 · sábado de manhã, em jejum",
+      "dias": [5], "modo": "" },
+
+    { "pilar": "diet", "nome": "Marmitas de quinta e sexta", "meta": "20h55 · quarta à noite",
+      "dias": [2], "modo": "" },
+
+    { "pilar": "diet", "nome": "Marmitas de segunda a quarta", "meta": "17h00 · domingo",
+      "dias": [6], "modo": "" }
+  ]
+}

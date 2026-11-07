@@ -264,6 +264,19 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;-webki
 .stepper b{font-family:Outfit,sans-serif;font-size:26px;font-weight:700;min-width:86px;text-align:center}
 .nota{margin:10px 2px 0;font-size:11.5px;color:var(--ink-3);line-height:1.45}
 
+/* alimentos de uma refeição, com as substituições atrás de um <details> */
+.itens{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
+.itens li{font-size:12px;line-height:1.4}
+.itens li b{display:inline;font-size:12px;font-weight:600;color:var(--ink-2)}
+.itens li i{font-style:normal;color:var(--ink-3)}
+.itens details{margin:3px 0 0}
+.itens summary{cursor:pointer;font-size:11px;font-weight:600;color:var(--lilac);list-style:none}
+.itens summary::-webkit-details-marker{display:none}
+.itens summary::before{content:'⇆ ';}
+.itens details ul{list-style:none;margin:5px 0 0;padding:7px 10px;display:grid;gap:5px;
+  border-radius:10px;background:var(--surface-2)}
+.itens .chips{margin:8px 0 6px}
+
 /* primeira abertura: quem é você */
 .escolha{height:100%;overflow-y:auto;display:grid;place-items:center;padding:32px 24px;text-align:center;
   background:var(--bg);

@@ -27,6 +27,25 @@ export function Folha({ onFechar, label, children }) {
 
 function Campo({ campo, valor, erro, onMuda, s }) {
   const id = 'c-' + campo.k;
+  /* dias da semana: 0 = SEG … 6 = DOM. Nenhum marcado quer dizer todo dia. */
+  if (campo.tipo === 'dias') {
+    const sel = Array.isArray(valor) ? valor : [];
+    return (
+      <div className="campo">
+        <span className="label">{campo.rot}</span>
+        <div className="chips" role="group" aria-label={campo.rot}>
+          {D.DIAS_SEMANA.map((d, i) => (
+            <motion.button key={d} type="button" className="chip" aria-pressed={sel.includes(i)}
+              whileTap={{ scale: .94 }}
+              onClick={() => onMuda(sel.includes(i)
+                ? sel.filter(x => x !== i)
+                : [...sel, i].sort((a, b) => a - b))}>{d}</motion.button>
+          ))}
+        </div>
+        {!sel.length && <p className="nota" style={{ margin: 0 }}>Nenhum marcado: vale todo dia.</p>}
+      </div>
+    );
+  }
   if (campo.tipo === 'escolha' || campo.tipo === 'habito') {
     const ops = campo.tipo === 'habito'
       ? s.listas.habitos.map(h => [h.id, h.nome])
@@ -68,7 +87,9 @@ function Formulario({ s, chave, item, onSalvar, onVoltar }) {
   const schema = D.SCHEMAS[chave];
   const [v, setV] = useState(() => {
     const base = {};
-    schema.campos.forEach(c => { base[c.k] = item?.[c.k] ?? c.padrao ?? ''; });
+    schema.campos.forEach(c => {
+      base[c.k] = item?.[c.k] ?? (c.tipo === 'dias' ? [] : c.padrao ?? '');
+    });
     return { ...base, id: item?.id };
   });
   const [erros, setErros] = useState({});
@@ -86,6 +107,7 @@ function Formulario({ s, chave, item, onSalvar, onVoltar }) {
     if (Object.keys(e).length) return;
     const limpo = { id: v.id };
     campos.forEach(c => {
+      if (c.tipo === 'dias') { limpo[c.k] = Array.isArray(v[c.k]) ? v[c.k] : []; return; }
       const bruto = String(v[c.k] ?? '').trim();
       limpo[c.k] = c.tipo === 'numero' ? (bruto === '' ? '' : Number(bruto.replace(',', '.'))) : bruto;
     });

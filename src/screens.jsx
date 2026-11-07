@@ -3,6 +3,16 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as D from './store.js';
+/* direto, e não via store.js: é o treino.js que importa dele, reexportar faria ciclo */
+import * as T from './treino.js';
+import * as Di from './dieta.js';
+import * as J from './joelho.js';
+import NOMES_OPENGYM from './nomes-opengym.json';
+/* o plano do Pedro embutido: o botão de Ajustes aplica estes três de uma vez.
+   Não é semente — perfil novo continua nascendo vazio, isso só entra no toque. */
+import PLANO_TREINO from './plano-treino.json';
+import PLANO_DIETA from './plano-dieta.json';
+import PLANO_ROTINA from './plano-rotina.json';
 import { Card, CARD, Ring, Barra, Habito, Check, Pill, Ico, Numero, Vazio, MOLA_CALMA } from './ui.jsx';
 
 /* cabeçalho de card com o botão que abre o editor daquela lista */
@@ -36,9 +46,13 @@ const Semaninha = ({ dias }) => (
   </div>
 );
 const HabitosDoPilar = ({ s, a, pilarId }) => {
-  const itens = D.habitosDo(s, pilarId);
+  /* só os hábitos que valem hoje: o checklist do dia não mostra o que é de
+     outro dia da semana nem de outro modo */
+  const itens = D.habitosDoPilarNoDia(s, pilarId, D.iso());
   const resp = s.dias[D.iso()] || {};
   if (!itens.length) {
+    const temNoPilar = D.habitosDo(s, pilarId).length > 0;
+    if (temNoPilar) return <Vazio titulo="Nada hoje" texto="Os hábitos deste pilar são de outros dias da semana." />;
     return <Convite a={a} chave="habitos" filtro={{ pilar: pilarId }} titulo={`Hábitos de ${D.pilar(pilarId).nome}`}
       rotulo="Cadastrar hábito" texto="Os itens de Sim / Não deste pilar são seus pra criar." />;
   }
@@ -53,18 +67,21 @@ const HabitosDoPilar = ({ s, a, pilarId }) => {
 function Hoje({ s, a }) {
   const hoje = D.iso();
   const resp = s.dias[hoje] || {};
-  const habitos = s.listas.habitos;
+  /* o dia conta só o que vale hoje; o acervo inteiro fica na tela Rotina */
+  const habitos = D.habitosDoDia(s, hoje);
   const p = D.pctDoDia(s, hoje);
   const sim = D.contar(resp, habitos, 'sim');
   const nao = D.contar(resp, habitos, 'nao');
   const pendentes = habitos.filter(h => !resp[h.id]);
+  const rt = J.reteste(s.listas.testes, hoje);
+  const avisoJoelho = (s.listas.treinos || []).length > 0 && rt.devido;
   const c = D.ciclo(s, hoje);
   const mes = D.doMes(s.tx, hoje);
   const { entradas, saidas, saldo } = D.caixa(mes);
   const macros = D.macrosDoDia(s, hoje);
   const entregas = [...s.listas.entregas].sort((x, y) => (x.data || '').localeCompare(y.data || '')).slice(0, 3);
 
-  if (!habitos.length) {
+  if (!s.listas.habitos.length) {
     return (
       <>
         <Card>
@@ -97,6 +114,18 @@ function Hoje({ s, a }) {
 
   return (
     <>
+      {/* o reteste do joelho vence longe da aba Joelho, então ele vem procurar
+          você aqui — é a única tela que se abre todo dia */}
+      {avisoJoelho && (
+        <motion.button className="banner" onClick={() => a.go('joelho')}
+          initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={MOLA_CALMA}
+          whileTap={{ scale: .98 }} style={{ width: '100%', textAlign: 'left' }}>
+          <Ico n="gym" s={16} />
+          {rt.nunca
+            ? 'Faça o primeiro autoteste do joelho pra ter uma linha de base.'
+            : `Autoteste do joelho venceu ${rt.faltam === 0 ? 'hoje' : `há ${-rt.faltam} dias`}. Toque pra registrar.`}
+        </motion.button>
+      )}
       <Card>
         <div className="today">
           <Ring pct={p} sub="do dia" />
@@ -114,7 +143,7 @@ function Hoje({ s, a }) {
         <div className="mini-rings">
           {D.PILARES.map((pl, i) => (
             <div className="mini" key={pl.id}>
-              <Ring pct={D.pctPilar(resp, D.habitosDo(s, pl.id))} size={42} sw={5} atraso={.16 + i * .07} />
+              <Ring pct={D.pctPilar(resp, D.habitosDoPilarNoDia(s, pl.id, hoje))} size={42} sw={5} atraso={.16 + i * .07} />
               <b>{pl.nome}</b>
             </div>
           ))}
@@ -312,7 +341,10 @@ function Rotina({ s, a }) {
         </p>
       </Card>
       {D.PILARES.map(pl => {
-        const itens = D.habitosDo(s, pl.id);
+        /* o checklist é do dia: hábito de outro dia da semana não aparece aqui,
+           mas continua existindo e editável pelo "Editar" */
+        const itens = D.habitosDoPilarNoDia(s, pl.id, D.iso());
+        const noPilar = D.habitosDo(s, pl.id).length;
         return (
           <Card key={pl.id}>
             <div className="card-head">
@@ -326,8 +358,10 @@ function Rotina({ s, a }) {
               </button>
             </div>
             {itens.length === 0
-              ? <Convite a={a} chave="habitos" filtro={{ pilar: pl.id }} titulo={`Hábitos de ${pl.nome}`}
-                rotulo={`Criar hábito de ${pl.nome}`} texto={`Nenhum hábito de ${pl.nome.toLowerCase()} ainda.`} />
+              ? noPilar > 0
+                ? <Vazio titulo="Nada hoje" texto={`Os ${noPilar} hábitos de ${pl.nome.toLowerCase()} são de outros dias da semana.`} />
+                : <Convite a={a} chave="habitos" filtro={{ pilar: pl.id }} titulo={`Hábitos de ${pl.nome}`}
+                  rotulo={`Criar hábito de ${pl.nome}`} texto={`Nenhum hábito de ${pl.nome.toLowerCase()} ainda.`} />
               : (
                 <div className="habits">
                   {itens.map(h => <Habito key={h.id} h={h} estado={resp[h.id]} onPick={v => a.marcar(h.id, v)} />)}
@@ -347,6 +381,10 @@ function Academia({ s, a }) {
   const metaTreino = s.listas.metas.find(m => m.tipo === 'habito' && D.habitosDo(s, 'gym').some(h => h.id === m.habitoId));
   const alvo = Number(metaTreino?.alvo) || 0;
   const hojeIdx = (new Date().getDay() + 6) % 7;
+  const temPlano = (s.listas.treinos || []).length > 0;
+  const luz = J.luzDoDia(s, D.iso());
+  const treinoHoje = T.treinoDoDia(s.listas, D.iso(), luz);
+  const fase = D.ciclo(s).fase;
   const semanas = D.porSemana(s, 'gym');
   const maxSem = Math.max(1, ...semanas);
   return (
@@ -374,16 +412,60 @@ function Academia({ s, a }) {
       </Card>
 
       <Card>
-        <Head titulo="Treino de hoje" chave="exercicios" rotulo="Exercícios" a={a} />
-        {s.listas.exercicios.length === 0
-          ? <Convite a={a} chave="exercicios" titulo="Exercícios" rotulo="Cadastrar exercício"
-            texto="Cadastre os exercícios pra marcar série por série." />
-          : s.listas.exercicios.map(e => (
-            <div className="row" key={e.id}>
-              <Check on={ex['ex' + e.id]} onClick={() => a.toggleExtra('ex' + e.id)} label={e.nome} />
-              <div className="row-txt"><b>{e.nome}</b><span>{e.meta || '—'}</span></div>
+        <Head titulo="Treino de hoje" chave={treinoHoje ? null : 'exercicios'} rotulo="Exercícios" a={a}
+          extra={temPlano ? <Pill t={`fase ${fase.nome}`} cor="lilac" /> : null} />
+
+        {treinoHoje ? (
+          <>
+            <div className="row" style={{ borderTop: 0 }}>
+              <div className="row-txt">
+                <b>{treinoHoje.emoji} {treinoHoje.nome}</b>
+                <span>
+                  {luz === 'vermelho'
+                    ? 'Joelho no vermelho: o treino de perna de hoje deu lugar à recuperação.'
+                    : `${treinoHoje.ex.length} exercícios · prescrição da fase ${fase.nome}`}
+                </span>
+              </div>
             </div>
-          ))}
+            {treinoHoje.ex.map(e => {
+              const chave = `tx${treinoHoje.id}-${e.ord}`;
+              const titulo = e.nome || e.ref;
+              return (
+                <div className="row" key={chave}>
+                  <Check on={ex[chave]} onClick={() => a.toggleExtra(chave)} label={titulo} />
+                  <div className="row-txt">
+                    <b>{titulo}</b>
+                    <span>
+                      {T.prescricao(e, fase.id)} · descanso {T.descansoTxt(e)}
+                      {e.sgNome ? ` · supersérie ${e.sgNome}` : ''}
+                    </span>
+                    {(e.nota || e.desc) && <span className="nota">{e.nota || e.desc}</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        ) : temPlano && luz === 'vermelho' ? (
+          <div className="empty">
+            <b>Joelho no vermelho</b>
+            Hoje era pra ser só superior, mas o seu plano não tem uma rotina de
+            recuperação importada. Não vou te mandar treinar perna assim.
+          </div>
+        ) : temPlano ? (
+          <div className="empty">
+            <b>Folga hoje</b>
+            Nenhum treino marcado pra {D.DIAS_SEMANA[hojeIdx]} na divisão da semana.
+          </div>
+        ) : s.listas.exercicios.length === 0 ? (
+          <Convite a={a} chave="exercicios" titulo="Exercícios" rotulo="Cadastrar exercício"
+            texto="Cadastre os exercícios pra marcar série por série, ou importe um plano em Ajustes." />
+        ) : s.listas.exercicios.map(e => (
+          <div className="row" key={e.id}>
+            <Check on={ex['ex' + e.id]} onClick={() => a.toggleExtra('ex' + e.id)} label={e.nome} />
+            <div className="row-txt"><b>{e.nome}</b><span>{e.meta || '—'}</span></div>
+          </div>
+        ))}
+
         <div className="sep" />
         <HabitosDoPilar s={s} a={a} pilarId="gym" />
       </Card>
@@ -406,10 +488,158 @@ function Academia({ s, a }) {
   );
 }
 
+/* ================= Joelho =================
+   Sem cor nova: verde usa o tom de entrada, vermelho o mesmo rosa do "não",
+   e o amarelo vira lilás — a disciplina de cor do app continua de pé. */
+const COR_LUZ = { verde: 'ok', amarelo: 'lilac', vermelho: 'warn' };
+const DORES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const INCHACOS = [[0, 'Nenhum'], [1, 'Leve'], [2, 'Forte']];
+
+function Joelho({ s, a }) {
+  const hoje = D.iso();
+  const check = (s.joelho || {})[hoje] || null;
+  const luz = J.luzDoDia(s, hoje);
+  const testes = s.listas.testes || [];
+  const ultimo = J.ultimoTeste(testes);
+  const v = J.voltaAoCampo(s.volta, testes);
+  const prox = ultimo ? D.maisDias(ultimo.data, J.DIAS_RETESTE) : null;
+  const muda = (k, valor) =>
+    a.setJoelho({ dor: 0, inchaco: 0, falseou: false, ...check, ok: true, [k]: valor });
+
+  return (
+    <>
+      <Card>
+        <div className="card-head">
+          <h2>Como está hoje</h2>
+          {luz
+            ? <Pill t={J.LUZES.find(l => l[0] === luz)[1]} cor={COR_LUZ[luz]} />
+            : <Pill t="sem check" cor="neutral" />}
+        </div>
+        <p className="nota" style={{ margin: '0 0 14px' }}>
+          {luz
+            ? J.LUZES.find(l => l[0] === luz)[2]
+            : 'Responda as três e o app decide o treino do dia por você.'}
+        </p>
+
+        <div className="row" style={{ borderTop: 0 }}>
+          <div className="row-txt"><b>O joelho falseou?</b><span>Sensação de que ia sair do lugar</span></div>
+          <Check on={!!check?.falseou} onClick={() => muda('falseou', !check?.falseou)} label="O joelho falseou" />
+        </div>
+
+        <span className="label" style={{ display: 'block', marginTop: 12 }}>Dor de 0 a 10</span>
+        <div className="chips" role="group" aria-label="Dor de 0 a 10">
+          {DORES.map(n => (
+            <motion.button key={n} className="chip" aria-pressed={Number(check?.dor) === n && !!check}
+              onClick={() => muda('dor', n)} whileTap={{ scale: .94 }}>{n}</motion.button>
+          ))}
+        </div>
+
+        <span className="label" style={{ display: 'block' }}>Inchaço</span>
+        <div className="chips" role="group" aria-label="Inchaço">
+          {INCHACOS.map(([n, t]) => (
+            <motion.button key={n} className="chip" aria-pressed={Number(check?.inchaco) === n && !!check}
+              onClick={() => muda('inchaco', n)} whileTap={{ scale: .94 }}>{t}</motion.button>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <div className="card-head">
+          <h2>Autotestes</h2>
+          {ultimo && <Pill t={J.simetriaOk(testes) ? 'simetria ok' : `abaixo de ${J.LSI_ALVO}%`}
+            cor={J.simetriaOk(testes) ? 'ok' : 'warn'} />}
+        </div>
+        {!ultimo
+          ? <p className="nota" style={{ margin: 0 }}>
+              Nenhum registro ainda. A cada {J.DIAS_RETESTE} dias, faça os três até falhar em
+              cada perna e anote as repetições boas.
+            </p>
+          : (
+            <>
+              <p className="nota" style={{ margin: '0 0 10px' }}>
+                Último em {D.dataCurta(ultimo.data)} · próximo em {D.dataCurta(prox)} ({D.faltam(prox).txt})
+              </p>
+              <div className="bars">
+                {J.linhasDoTeste(ultimo).map(l => (
+                  <div className="bar-row" key={l.k}>
+                    <span>{l.nome}</span>
+                    <span className="v">D {l.d} · E {l.e} · {l.lsi ?? '—'}%</span>
+                    <Barra pct={Math.min(100, l.lsi || 0)} />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        <div className="sep" />
+        <NovoTeste onSalvar={a.addTeste} />
+      </Card>
+
+      <Card>
+        <div className="card-head">
+          <h2>Volta ao futebol</h2>
+          <Pill t={`${v.feitos}/${v.total}`} cor={v.liberado ? 'ok' : 'neutral'} />
+        </div>
+        {J.CRITERIOS.map(c => {
+          const feito = J.criterioFeito(c, s.volta, testes);
+          return (
+            <div className="row" key={c.k}>
+              <Check on={feito} onClick={() => !c.auto && a.setVolta(c.k, !feito)} label={c.t} />
+              <div className="row-txt">
+                <b>{c.t}</b>
+                {c.sub && <span>{c.sub}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </Card>
+    </>
+  );
+}
+
+/* registra um autoteste: repetições boas de cada perna nos três movimentos */
+function NovoTeste({ onSalvar }) {
+  const [v, setV] = useState({});
+  const num = x => (String(x ?? '').trim() === '' ? null : Number(x));
+  const completo = J.AUTOTESTES.every(t => num(v[t.k + 'd']) > 0 && num(v[t.k + 'e']) > 0);
+  const salvar = () => {
+    if (!completo) return;
+    onSalvar(Object.fromEntries(J.AUTOTESTES.map(t =>
+      [t.k, { d: num(v[t.k + 'd']), e: num(v[t.k + 'e']) }])));
+    setV({});
+  };
+  return (
+    <>
+      <span className="label" style={{ display: 'block', marginBottom: 8 }}>Registrar um teste novo</span>
+      {J.AUTOTESTES.map(t => (
+        <div className="row" key={t.k}>
+          <div className="row-txt"><b>{t.nome}</b><span>{t.como}</span></div>
+          {['d', 'e'].map(lado => (
+            <div className="field compacto" key={lado}>
+              <input className="campo-input num" inputMode="numeric"
+                aria-label={`${t.nome}, perna ${lado === 'd' ? 'direita' : 'esquerda'}`}
+                placeholder={lado === 'd' ? 'D' : 'E'} value={v[t.k + lado] ?? ''}
+                onChange={e => setV(p => ({ ...p, [t.k + lado]: e.target.value.replace(/\D/g, '').slice(0, 3) }))} />
+            </div>
+          ))}
+        </div>
+      ))}
+      <motion.button className="btn-primary" style={{ marginTop: 12, opacity: completo ? 1 : .45 }}
+        disabled={!completo} onClick={salvar} whileTap={{ scale: .97 }}>
+        {completo ? 'Salvar teste de hoje' : 'Preencha as seis repetições'}
+      </motion.button>
+    </>
+  );
+}
+
 /* ================= Dieta ================= */
 function Dieta({ s, a }) {
   const ex = D.extraDoDia(s);
   const m = D.macrosDoDia(s);
+  const grupos = Di.gruposDeRefeicao(s.listas.refeicoes);
+  const gf = Di.gruposFeitos(grupos, ex);
+  /* plano sem macro por refeição (o Web Diet só dá o total do dia): a tela
+     conta refeição em vez de fingir que sabe os gramas de cada uma */
+  const temMacro = s.listas.refeicoes.some(r => Number(r.prot) > 0 || Number(r.kcal) > 0);
   const litros = (m.agua * s.cfg.mlGarrafa / 1000).toFixed(1).replace('.', ',');
   const alvoLitros = (s.cfg.garrafas * s.cfg.mlGarrafa / 1000).toFixed(1).replace('.', ',');
   const ad = D.aderenciaPilar(s, 'diet');
@@ -417,15 +647,17 @@ function Dieta({ s, a }) {
     <>
       <Card>
         <div className="today">
-          <Ring pct={m.total ? Math.round(m.feitas / m.total * 100) : 0} sub="refeições" />
+          <Ring pct={gf.total ? Math.round(gf.feitos / gf.total * 100) : 0} sub="refeições" />
           <div className="today-txt">
-            <h2>{m.prot} g de proteína</h2>
-            <p>{m.total
-              ? `${m.feitas} de ${m.total} refeições marcadas. Os gramas saem das refeições que você marcou.`
-              : 'Cadastre suas refeições pra o app somar proteína e caloria sozinho.'}</p>
+            <h2>{temMacro ? `${m.prot} g de proteína` : `${gf.feitos} de ${gf.total} refeições`}</h2>
+            <p>{!gf.total
+              ? 'Cadastre suas refeições pra o app somar proteína e caloria sozinho.'
+              : temMacro
+                ? `${gf.feitos} de ${gf.total} refeições marcadas. Os gramas saem das refeições que você marcou.`
+                : `Meta do dia: ${s.cfg.proteina} g de proteína e ${s.cfg.kcal.toLocaleString('pt-BR')} kcal. O plano não traz o macro de cada refeição, então aqui a conta é por refeição feita.`}</p>
           </div>
         </div>
-        {m.total > 0 && (
+        {temMacro && (
           <>
             <div className="sep" />
             <div className="bars">
@@ -444,20 +676,11 @@ function Dieta({ s, a }) {
 
       <Card>
         <Head titulo="Refeições de hoje" chave="refeicoes" rotulo="Refeições" a={a}
-          extra={m.total > 0 ? <Pill t={`${m.feitas}/${m.total}`} cor={m.feitas === m.total ? 'ok' : 'neutral'} /> : null} />
-        {m.total === 0
+          extra={grupos.length > 0 ? <Pill t={`${gf.feitos}/${gf.total}`} cor={gf.feitos === gf.total ? 'ok' : 'neutral'} /> : null} />
+        {grupos.length === 0
           ? <Convite a={a} chave="refeicoes" titulo="Refeições" rotulo="Cadastrar refeição"
             texto="Monte o seu dia de comida: nome, horário, proteína e caloria de cada refeição." />
-          : s.listas.refeicoes.map(r => (
-            <div className="row" key={r.id}>
-              <Check on={ex['rf' + r.id]} onClick={() => a.toggleExtra('rf' + r.id)} label={r.nome} />
-              <div className="row-txt">
-                <b>{[r.nome, r.hora].filter(Boolean).join(' · ')}</b>
-                <span>{r.o || '—'}</span>
-              </div>
-              {r.prot !== '' && r.prot != null && <span className="tx-v">{r.prot} g</span>}
-            </div>
-          ))}
+          : grupos.map(g => <RefeicaoGrupo key={g.grupo} g={g} ex={ex} a={a} />)}
       </Card>
 
       <Card>
@@ -784,6 +1007,22 @@ function Ajustes({ s, a }) {
       </Card>
 
       <Card>
+        <div className="card-head"><h2>Semana</h2></div>
+        <div className="seg" role="group" aria-label="Modo da semana">
+          {D.MODOS_SEMANA.map(([v, t]) => (
+            <button key={v} aria-pressed={(s.modo || 'aula') === v} onClick={() => a.setCampo('modo', v)}>
+              {(s.modo || 'aula') === v && <motion.span className="seg-thumb" layoutId="seg-modo" transition={MOLA_CALMA} />}
+              {t}
+            </button>
+          ))}
+        </div>
+        <p className="nota">
+          Troca quais hábitos valem. Na semana sem aula caem os de faculdade e entram
+          os de férias — {D.habitosDoDia(s, D.iso()).length} {D.habitosDoDia(s, D.iso()).length === 1 ? 'hábito vale' : 'hábitos valem'} hoje.
+        </p>
+      </Card>
+
+      <Card>
         <div className="card-head"><h2>Seus números</h2></div>
         {numeros.map(([k, rot, sub, un]) => (
           <div className="row" key={k}>
@@ -811,6 +1050,15 @@ function Ajustes({ s, a }) {
       </Card>
 
       <Card>
+        <div className="card-head">
+          <h2>Importar plano</h2>
+          {(s.listas.treinos || []).length > 0 &&
+            <Pill t={`${s.listas.treinos.length} rotinas`} cor="lilac" />}
+        </div>
+        <ImportarPlano a={a} />
+      </Card>
+
+      <Card>
         <div className="card-head"><h2>Dados de {s.nome}</h2></div>
         <p className="nota" style={{ margin: '0 0 12px' }}>
           Tudo fica salvo só neste aparelho, no navegador. Apagar aqui não mexe no outro perfil.
@@ -818,6 +1066,132 @@ function Ajustes({ s, a }) {
         <ConfirmaDuasVezes rotulo="Apagar tudo deste perfil"
           confirma="Toque de novo pra apagar tudo" onOk={a.apagarPerfil} />
       </Card>
+    </>
+  );
+}
+
+/* Um horário de refeição. Com mais de uma opção no mesmo grupo, elas são
+   alternativas: escolhe uma, e marcar qualquer uma já fecha o horário. */
+function RefeicaoGrupo({ g, ex, a }) {
+  const [sel, setSel] = useState(g.opcoes[0].id);
+  const marcada = g.opcoes.find(o => ex['rf' + o.id]);
+  const r = marcada || g.opcoes.find(o => o.id === sel) || g.opcoes[0];
+  return (
+    <div className="row">
+      <Check on={!!ex['rf' + r.id]} onClick={() => a.toggleExtra('rf' + r.id)} label={r.nome} />
+      <div className="row-txt">
+        <b>{[g.nome, g.hora].filter(Boolean).join(' · ')}</b>
+        {g.opcoes.length > 1 && (
+          <div className="chips" role="group" aria-label={`Opções de ${g.nome}`}>
+            {g.opcoes.map(o => (
+              <motion.button key={o.id} className="chip" aria-pressed={o.id === r.id}
+                onClick={() => setSel(o.id)} whileTap={{ scale: .94 }}>{o.nome}</motion.button>
+            ))}
+          </div>
+        )}
+        {r.itens && r.itens.length > 0 ? (
+          <ul className="itens">
+            {r.itens.map((it, i) => (
+              <li key={i}>
+                <b>{it.nome}</b> <i>{it.qtd}</i>
+                {it.subs.length > 0 && (
+                  <details>
+                    <summary>{it.subs.length} substituiç{it.subs.length === 1 ? 'ão' : 'ões'}</summary>
+                    <ul>{it.subs.map((sb, j) => <li key={j}><b>{sb.nome}</b> <i>{sb.qtd}</i></li>)}</ul>
+                  </details>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : <span>{r.o || '—'}</span>}
+        {r.obs && <span className="nota">{r.obs}</span>}
+      </div>
+      {r.prot !== '' && r.prot != null && <span className="tx-v">{r.prot} g</span>}
+    </div>
+  );
+}
+
+/* Importa o .opengym-plan.json. Substitui as rotinas e a divisão da semana;
+   não inventa nome: exercício sem par no mapa aparece pelo código. */
+function ImportarPlano({ a }) {
+  const [msg, setMsg] = useState('');
+  const [ruim, setRuim] = useState(false);
+
+  const ler = async arquivo => {
+    if (!arquivo) return;
+    try {
+      const json = JSON.parse(await arquivo.text());
+
+      /* rotina: o arquivo traz hábitos */
+      if (Array.isArray(json.habitos)) {
+        const habitos = json.habitos.map(hb => ({ ...hb, id: D.novoId() }));
+        if (!habitos.length) { setRuim(true); setMsg('Esse arquivo não tem hábito nenhum.'); return; }
+        a.importarRotina(habitos);
+        setRuim(false);
+        setMsg(`${habitos.length} hábitos nos pilares. Os dias já marcados continuam como estavam.`);
+        return;
+      }
+
+      /* dieta: o arquivo traz refeições */
+      if (Array.isArray(json.refeicoes)) {
+        const { refeicoes, cfg } = Di.importarPlanoDieta(json);
+        if (!refeicoes.length) { setRuim(true); setMsg('Esse arquivo não tem refeição nenhuma.'); return; }
+        a.importarDieta(refeicoes, cfg);
+        const g = Di.gruposDeRefeicao(refeicoes).length;
+        setRuim(false);
+        setMsg(`${refeicoes.length} refeições em ${g} ${g === 1 ? 'horário' : 'horários'}.`
+          + (cfg.proteina ? ` Meta do dia ajustada pra ${cfg.proteina} g e ${cfg.kcal} kcal.` : ''));
+        return;
+      }
+
+      /* treino: o export do OpenGym */
+      const { treinos, split } = T.importarOpenGym(json);
+      if (!treinos.length) {
+        setRuim(true);
+        setMsg('Esse arquivo não tem rotina nem refeição dentro.');
+        return;
+      }
+      const comNome = T.comNomes(treinos, NOMES_OPENGYM);
+      const semNome = comNome.flatMap(t => t.ex).filter(e => !e.nome).length;
+      a.importarPlano(comNome, split);
+      setRuim(false);
+      setMsg(`${comNome.length} ${comNome.length === 1 ? 'rotina' : 'rotinas'} e a divisão da semana.`
+        + (semNome ? ` ${semNome} ${semNome === 1 ? 'exercício' : 'exercícios'} sem nome, aparecem pelo código.` : ''));
+    } catch {
+      setRuim(true);
+      setMsg('Não deu pra ler. Precisa ser o .json do OpenGym ou o do plano de dieta.');
+    }
+  };
+
+  return (
+    <>
+      <p className="nota" style={{ margin: '0 0 12px' }}>
+        Aceita o arquivo que o OpenGym exporta (treino) e o arquivo do plano de dieta.
+        Substitui só a parte correspondente deste perfil; o resto dos seus dados fica igual.
+      </p>
+      <label className="btn-primary" style={{ display: 'block', textAlign: 'center', cursor: 'pointer' }}>
+        Escolher arquivo do plano
+        <input type="file" accept=".json,application/json" style={{ display: 'none' }}
+          onChange={e => { ler(e.target.files[0]); e.target.value = ''; }} />
+      </label>
+      {msg && <p className={ruim ? 'err' : 'nota'} role="status" style={{ marginTop: 10 }}>{msg}</p>}
+
+      <div className="sep" />
+      <p className="nota" style={{ margin: '0 0 12px' }}>
+        O plano do Pedro já vem junto com o app: treino, dieta e rotina de uma vez,
+        sem precisar do arquivo. Substitui o que estiver neste perfil.
+      </p>
+      <ConfirmaDuasVezes rotulo="Usar o plano que já vem no app"
+        confirma="Toque de novo: substitui treino, dieta e rotina"
+        onOk={() => {
+          const { treinos, split } = T.importarOpenGym(PLANO_TREINO);
+          a.importarPlano(T.comNomes(treinos, NOMES_OPENGYM), split);
+          const { refeicoes, cfg } = Di.importarPlanoDieta(PLANO_DIETA);
+          a.importarDieta(refeicoes, cfg);
+          a.importarRotina(PLANO_ROTINA.habitos.map(hb => ({ ...hb, id: D.novoId() })));
+          setRuim(false);
+          setMsg(`${treinos.length} rotinas de treino, ${refeicoes.length} refeições e ${PLANO_ROTINA.habitos.length} hábitos.`);
+        }} />
     </>
   );
 }
@@ -833,6 +1207,6 @@ function ConfirmaDuasVezes({ rotulo, confirma, onOk }) {
 }
 
 export const TELAS = {
-  hoje: Hoje, percurso: Percurso, rotina: Rotina, academia: Academia, dieta: Dieta,
+  hoje: Hoje, percurso: Percurso, rotina: Rotina, academia: Academia, joelho: Joelho, dieta: Dieta,
   faculdade: Faculdade, estagio: Estagio, financeiro: Financeiro, metas: Metas, ajustes: Ajustes,
 };
