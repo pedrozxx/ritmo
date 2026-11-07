@@ -6,14 +6,17 @@ import { rmSync, existsSync } from 'node:fs';
 const REMOTO = 'https://github.com/pedrozxx/ritmo.git';
 const SITE = 'https://pedrozxx.github.io/ritmo/';
 
-/* chama o npm.cmd direto no Windows em vez de ligar o shell: com shell ligado
-   os argumentos não são protegidos e a mensagem do commit se parte em pedaços. */
-const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const rodar = (cmd, args) => execFileSync(cmd, args, { stdio: 'inherit' });
 
-rodar(NPM, ['run', 'check']);
-rodar(NPM, ['run', 'smoke']);
-rodar(NPM, ['run', 'build']);
+/* Chama o node direto em vez do npm. No Windows o npm é um .cmd, e desde o
+   Node 20.12 rodar .cmd sem shell dá EINVAL — e com shell o próprio Node
+   avisa que os argumentos não são escapados. Pelo node não existe nenhum dos
+   dois problemas, e ainda pula a partida do npm três vezes. */
+const node = (...args) => rodar(process.execPath, args);
+
+node('src/check.mjs');
+node('src/smoke.mjs');
+node('node_modules/vite/bin/vite.js', 'build');
 
 if (!existsSync('dist/index.html')) throw new Error('o build não gerou dist/index.html');
 rmSync('dist/.git', { recursive: true, force: true });
