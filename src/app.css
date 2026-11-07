@@ -85,10 +85,13 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;-webki
 .drawer{position:fixed;inset:0 auto 0 0;width:264px;z-index:1;display:flex;flex-direction:column;
   padding:calc(22px + var(--sa-top)) 18px calc(26px + var(--sa-bottom));
   background:linear-gradient(170deg,var(--surface-2),var(--lilac-soft) 55%,var(--rose-soft))}
-.drawer-head{display:flex;align-items:center;gap:11px;padding:0 6px 18px}
 .avatar{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:var(--accent-fill);color:var(--on-accent);font-family:Outfit;font-weight:700;font-size:16px}
-.drawer-head b{display:block;font-size:14.5px;line-height:1.25}
-.drawer-head span{display:block;font-size:12px;color:var(--ink-3)}
+/* quem está usando: Pedro ou Ana */
+.perfis{position:relative;display:flex;gap:4px;padding:4px;margin-bottom:8px;border-radius:14px;background:var(--surface);box-shadow:var(--shadow-card)}
+.perfil{position:relative;isolation:isolate;flex:1;padding:9px 6px;border-radius:11px;font-size:13.5px;font-weight:700;color:var(--ink-3)}
+.perfil[aria-pressed="true"]{color:var(--on-accent)}
+.perfil-thumb{position:absolute;inset:0;z-index:-1;border-radius:11px;background:var(--accent-fill)}
+.drawer-sub{margin:0 0 16px;padding:0 6px;font-size:11.5px;color:var(--ink-3);font-weight:600;line-height:1.4}
 .nav{display:flex;flex-direction:column;gap:2px;overflow-y:auto;scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
 .nav-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;font-size:14.5px;font-weight:600;color:var(--ink-2);text-align:left;width:100%;
@@ -237,9 +240,43 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;-webki
   background:var(--accent-fill);color:var(--on-accent);font-family:Outfit,sans-serif;font-weight:600;font-size:14.5px;
   display:flex;align-items:center;gap:8px;box-shadow:0 10px 26px -8px rgba(80,40,160,.6)}
 .sheet-bd{position:absolute;inset:0;z-index:7;background:rgba(26,12,50,.34);backdrop-filter:blur(3px);border:0}
-.sheet{position:absolute;left:0;right:0;bottom:0;z-index:8;background:var(--surface);border-radius:28px 28px 0 0;
-  padding:12px 20px calc(24px + var(--sa-bottom));box-shadow:0 -20px 60px -20px rgba(30,10,60,.4);touch-action:none}
-.grip{width:38px;height:4px;border-radius:9px;background:var(--line-strong);margin:0 auto 14px}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:8;max-height:86%;display:flex;flex-direction:column;
+  background:var(--surface);border-radius:28px 28px 0 0;padding:0 20px calc(22px + var(--sa-bottom));
+  box-shadow:0 -20px 60px -20px rgba(30,10,60,.4)}
+/* só a alça arrasta, pra não brigar com a rolagem de dentro */
+.grip-area{flex:0 0 auto;padding:12px 0 12px;touch-action:none;cursor:grab}
+.grip{width:38px;height:4px;border-radius:9px;background:var(--line-strong);margin:0 auto}
+.sheet-corpo{flex:1;overflow-y:auto;scrollbar-width:none}
+.sheet-corpo::-webkit-scrollbar{display:none}
+.sheet-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.sheet-head h2{margin:0;font-family:Outfit,sans-serif;font-size:18px;font-weight:600;letter-spacing:-.01em}
+.campo{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.campo .label{margin-left:2px}
+.campo-input{flex:1;min-width:0;width:100%;background:none;border:0;outline:0;
+  font-family:inherit;font-size:16px;font-weight:600;color:var(--ink)}
+.campo-input::placeholder{color:var(--ink-3);opacity:.7;font-weight:500}
+.field.compacto{max-width:112px;padding:7px 11px}
+.field.compacto .campo-input{font-size:15px;text-align:right}
+.icon-btn.pequeno{width:34px;height:34px;border-radius:11px;background:var(--surface-2);box-shadow:none;color:var(--ink-3)}
+.icon-btn.perigo{background:var(--rose-soft);color:var(--rose)}
+.stepper{display:flex;align-items:center;justify-content:center;gap:22px}
+.stepper button{width:46px;height:46px;border-radius:16px;background:var(--surface-2);color:var(--ink);display:grid;place-items:center}
+.stepper b{font-family:Outfit,sans-serif;font-size:26px;font-weight:700;min-width:86px;text-align:center}
+.nota{margin:10px 2px 0;font-size:11.5px;color:var(--ink-3);line-height:1.45}
+
+/* primeira abertura: quem é você */
+.escolha{height:100%;overflow-y:auto;display:grid;place-items:center;padding:32px 24px;text-align:center;
+  background:var(--bg);
+  background-image:
+    radial-gradient(600px 320px at 50% -4%, var(--glow-1), transparent 70%),
+    radial-gradient(420px 280px at 85% 104%, var(--glow-2), transparent 72%)}
+.escolha h1{margin:0 0 10px;font-family:Outfit,sans-serif;font-size:40px;font-weight:700;letter-spacing:-.03em}
+.escolha p{margin:0 0 28px;font-size:14.5px;line-height:1.6;color:var(--ink-2)}
+.escolha-botoes{display:flex;gap:12px;justify-content:center;margin-bottom:22px}
+.escolha-botoes button{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 28px;
+  border-radius:22px;background:var(--surface);box-shadow:var(--shadow-card);
+  font-family:Outfit,sans-serif;font-size:16px;font-weight:600}
+.escolha-botoes .avatar{width:54px;height:54px;border-radius:18px;font-size:21px}
 .seg{display:flex;gap:6px;padding:4px;background:var(--surface-2);border-radius:14px;margin-bottom:14px}
 .seg button{flex:1;padding:9px;border-radius:11px;font-size:13px;font-weight:700;color:var(--ink-3);position:relative;isolation:isolate}
 .seg button[aria-pressed="true"]{color:var(--ink)}

@@ -1,10 +1,6 @@
 /* Ritmo — dados e regras.
-   Tudo aqui em cima é função pura (dá pra testar com `npm run check`).
-   O localStorage só aparece no fim do arquivo. */
-
-// % de "sim" que o dia precisa pra contar na sequência.
-// ponytail: knob. Se na vida real a sequência quebrar fácil demais, baixa pra 60.
-export const META_DIA = 70;
+   Dois perfis (Pedro e Ana), cada um com o próprio estado no localStorage.
+   Tudo aqui em cima é função pura (`npm run check`); o storage fica no fim. */
 
 /* ---- o percurso: 90 dias em 3 fases de 30 ---- */
 export const CICLO_DIAS = 90;
@@ -17,49 +13,75 @@ export const FASES = [
     foco: 'Provas, meta de grana e o melhor shape do ciclo.' },
 ];
 
-/* ---- estrutura da rotina ----
-   Pra trocar os hábitos é só mexer nesta lista: o resto do app se ajusta. */
+/* ---- os 5 pilares são a estrutura do app (cada um tem sua tela).
+   Os hábitos dentro deles são cadastrados por quem usa. ---- */
 export const PILARES = [
-  { id: 'fac', nome: 'Faculdade', icon: 'fac', itens: [
-    { id: 'aulas',  nome: 'Assisti todas as aulas',      meta: 'Cálculo III · 19h10' },
-    { id: 'estudo', nome: 'Estudei 1h pra prova',        meta: 'Banco de Dados · 12/11' },
-    { id: 'lista',  nome: 'Entreguei a lista da semana', meta: 'Lista 7 · vence amanhã' },
-  ]},
-  { id: 'gym', nome: 'Academia', icon: 'gym', itens: [
-    { id: 'treino', nome: 'Fui pra academia', meta: 'Push B · 18h' },
-    { id: 'cardio', nome: 'Fiz o cardio',     meta: '20 min de esteira' },
-  ]},
-  { id: 'diet', nome: 'Dieta', icon: 'diet', itens: [
-    { id: 'sem_lixo',  nome: 'Não saí da dieta',   meta: 'Sem fast food nem doce' },
-    { id: 'marmita',   nome: 'Levei a marmita',    meta: 'Almoço de casa' },
-    { id: 'creatina',  nome: 'Tomei a creatina',   meta: '5 g, qualquer horário' },
-  ]},
-  { id: 'est', nome: 'Estágio', icon: 'est', itens: [
-    { id: 'horas', nome: 'Bati as 6h do dia',          meta: '09h00 às 15h30' },
-    { id: 'board', nome: 'Fechei as tarefas do board', meta: '2 cards + review do PR' },
-  ]},
-  { id: 'fin', nome: 'Financeiro', icon: 'fin', itens: [
-    { id: 'gastos', nome: 'Registrei os gastos do dia',  meta: 'Lançamentos de hoje' },
-    { id: 'limite', nome: 'Não passei do limite diário', meta: 'Limite de R$ 45,00' },
-  ]},
+  { id: 'fac',  nome: 'Faculdade',  icon: 'fac' },
+  { id: 'gym',  nome: 'Academia',   icon: 'gym' },
+  { id: 'diet', nome: 'Dieta',      icon: 'diet' },
+  { id: 'est',  nome: 'Estágio',    icon: 'est' },
+  { id: 'fin',  nome: 'Financeiro', icon: 'fin' },
 ];
-export const HABITOS = PILARES.flatMap(p => p.itens.map(i => ({ ...i, pilar: p.id })));
 export const pilar = id => PILARES.find(p => p.id === id);
-export const CATS = ['Alimentação', 'Transporte', 'Academia', 'Faculdade', 'Lazer', 'Renda'];
+export const PERFIS = [{ id: 'pedro', nome: 'Pedro' }, { id: 'ana', nome: 'Ana' }];
+export const DIAS_SEMANA = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
 
-/* ---- dieta ---- */
-export const META_PROTEINA = 170;
-export const META_KCAL = 2600;
-export const GARRAFAS = 6;
-export const ML_GARRAFA = 500;
-export const REFEICOES = [
-  { nome: 'Café da manhã',   hora: '07h30', o: '4 ovos, 2 fatias de pão integral, café', prot: 32, kcal: 480 },
-  { nome: 'Lanche da manhã', hora: '10h00', o: 'Whey com banana',                        prot: 28, kcal: 240 },
-  { nome: 'Almoço',          hora: '12h30', o: '180 g de frango, arroz, feijão, salada',  prot: 48, kcal: 720 },
-  { nome: 'Pré-treino',      hora: '17h00', o: 'Pão com pasta de amendoim e café',        prot: 10, kcal: 320 },
-  { nome: 'Jantar',          hora: '20h30', o: '200 g de carne moída, batata doce, legumes', prot: 46, kcal: 680 },
-  { nome: 'Ceia',            hora: '22h30', o: 'Iogurte natural com granola',             prot: 16, kcal: 220 },
-];
+/* ---- o que dá pra cadastrar, e com quais campos ----
+   Um esquema por lista; o editor genérico monta o formulário a partir daqui. */
+export const SCHEMAS = {
+  habitos: { um: 'hábito', campos: [
+    { k: 'nome', rot: 'O que é', tipo: 'texto', obrig: true, dica: 'Fui pra academia' },
+    { k: 'meta', rot: 'Detalhe', tipo: 'texto', dica: 'Push B às 18h' },
+  ]},
+  refeicoes: { um: 'refeição', campos: [
+    { k: 'nome', rot: 'Refeição', tipo: 'texto', obrig: true, dica: 'Almoço' },
+    { k: 'hora', rot: 'Horário', tipo: 'texto', dica: '12h30' },
+    { k: 'o', rot: 'O que tem', tipo: 'texto', dica: '180 g de frango, arroz e salada' },
+    { k: 'prot', rot: 'Proteína em gramas', tipo: 'numero' },
+    { k: 'kcal', rot: 'Calorias', tipo: 'numero' },
+  ]},
+  exercicios: { um: 'exercício', campos: [
+    { k: 'nome', rot: 'Exercício', tipo: 'texto', obrig: true, dica: 'Supino inclinado' },
+    { k: 'meta', rot: 'Séries e carga', tipo: 'texto', dica: '4 × 8 com 32 kg' },
+  ]},
+  materias: { um: 'matéria', campos: [
+    { k: 'nome', rot: 'Matéria', tipo: 'texto', obrig: true, dica: 'Cálculo III' },
+    { k: 'meta', rot: 'Detalhe', tipo: 'texto', dica: 'Segunda e quarta, 19h10' },
+    { k: 'nota', rot: 'Nota parcial', tipo: 'numero' },
+  ]},
+  entregas: { um: 'entrega', campos: [
+    { k: 'nome', rot: 'O que é', tipo: 'texto', obrig: true, dica: 'Prova 2 de Banco de Dados' },
+    { k: 'meta', rot: 'Detalhe', tipo: 'texto', dica: 'Sala B204' },
+    { k: 'data', rot: 'Quando', tipo: 'data', obrig: true },
+  ]},
+  tarefas: { um: 'tarefa', campos: [
+    { k: 'nome', rot: 'Tarefa', tipo: 'texto', obrig: true, dica: 'Review do PR' },
+    { k: 'meta', rot: 'Detalhe', tipo: 'texto' },
+  ]},
+  cats: { um: 'categoria', campos: [
+    { k: 'nome', rot: 'Categoria', tipo: 'texto', obrig: true, dica: 'Alimentação' },
+  ]},
+  split: { um: 'dia da semana', fixo: true, campos: [
+    { k: 'meta', rot: 'Treino do dia', tipo: 'texto', dica: 'Push A, Pull B, folga…' },
+  ]},
+  metas: { um: 'meta', campos: [
+    { k: 'nome', rot: 'A meta', tipo: 'texto', obrig: true, dica: 'Treinar 20 vezes no mês' },
+    { k: 'fase', rot: 'Fase do ciclo', tipo: 'escolha', padrao: 'base',
+      ops: [['base', 'Base'], ['ritmo', 'Ritmo'], ['pico', 'Pico']] },
+    { k: 'tipo', rot: 'Como medir', tipo: 'escolha', padrao: 'manual', ops: [
+      ['manual', 'Eu atualizo na mão'],
+      ['habito', 'Contar um hábito no mês'],
+      ['saldo', 'Fechar o mês no positivo'],
+      ['dieta', 'Dias de dieta na semana'],
+      ['proteina', 'Proteína de hoje'],
+    ]},
+    { k: 'habitoId', rot: 'Qual hábito contar', tipo: 'habito', so: ['habito'] },
+    { k: 'alvo', rot: 'Alvo', tipo: 'numero', so: ['manual', 'habito', 'dieta'], dica: '20' },
+    { k: 'valor', rot: 'Onde está hoje', tipo: 'numero', so: ['manual'] },
+  ]},
+};
+export const camposVisiveis = (chave, v) =>
+  SCHEMAS[chave].campos.filter(c => !c.so || c.so.includes(v.tipo));
 
 /* ---- datas ---- */
 export const iso = (d = new Date()) =>
@@ -68,61 +90,98 @@ export const iso = (d = new Date()) =>
 const emDia = k => new Date(k + 'T12:00:00');
 export const maisDias = (k, n) => { const d = emDia(k); d.setDate(d.getDate() + n); return iso(d); };
 export const diasEntre = (a, b) => Math.round((emDia(b) - emDia(a)) / 86400000);
-export const DIAS_SEMANA = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+export const dataCurta = k => `${String(emDia(k).getDate()).padStart(2, '0')}/${String(emDia(k).getMonth() + 1).padStart(2, '0')}`;
 
 export function dataLonga(k = iso()) {
   const d = emDia(k), s = d.toLocaleDateString('pt-BR', { weekday: 'long' }).replace('-feira', '');
   return s.charAt(0).toUpperCase() + s.slice(1) + ', ' + d.getDate() + ' de ' +
     d.toLocaleDateString('pt-BR', { month: 'long' });
 }
-export const dataCurta = k => `${String(emDia(k).getDate()).padStart(2, '0')}/${String(emDia(k).getMonth() + 1).padStart(2, '0')}`;
 export function rotuloData(k, ref = iso()) {
   if (k === ref) return 'Hoje';
   if (k === maisDias(ref, -1)) return 'Ontem';
+  if (k === maisDias(ref, 1)) return 'Amanhã';
   return dataCurta(k);
+}
+export function faltam(k, ref = iso()) {
+  const n = diasEntre(ref, k);
+  if (n < 0) return { n, txt: `${-n} ${-n === 1 ? 'dia' : 'dias'} atrás`, cor: 'neutral' };
+  if (n === 0) return { n, txt: 'hoje', cor: 'warn' };
+  if (n === 1) return { n, txt: 'amanhã', cor: 'warn' };
+  return { n, txt: `${n} dias`, cor: n <= 7 ? 'lilac' : 'neutral' };
 }
 
 /* ---- rotina ---- */
-export function pctDia(resp, total = HABITOS.length) {
-  if (!resp || !total) return 0;
-  const sim = Object.values(resp).filter(v => v === 'sim').length;
-  return Math.round((sim / total) * 100);
+export const habitosDo = (s, pilarId) => s.listas.habitos.filter(h => h.pilar === pilarId);
+
+/* conta só os hábitos que existem hoje: hábito apagado não pode inflar o dia */
+export function pctDia(resp, habitos) {
+  if (!resp || !habitos || !habitos.length) return 0;
+  const sim = habitos.filter(h => resp[h.id] === 'sim').length;
+  return Math.round((sim / habitos.length) * 100);
 }
-export const pctPilar = (resp, p) => {
-  const sim = p.itens.filter(i => resp && resp[i.id] === 'sim').length;
-  return Math.round((sim / p.itens.length) * 100);
-};
+export const contar = (resp, habitos, v) =>
+  !resp ? 0 : habitos.filter(h => resp[h.id] === v).length;
+export function pctPilar(resp, itens) {
+  if (!itens || !itens.length) return 0;
+  const sim = itens.filter(i => resp && resp[i.id] === 'sim').length;
+  return Math.round((sim / itens.length) * 100);
+}
+export const pctDoDia = (s, k = iso()) => pctDia(s.dias[k], s.listas.habitos);
 
 /* O dia de hoje ainda está aberto: enquanto não bate a meta ele não quebra
    a sequência, só não soma. Por isso a contagem começa em ontem. */
-export function sequencia(dias, meta = META_DIA, ref = iso()) {
-  let n = pctDia(dias[ref]) >= meta ? 1 : 0;
+export function sequencia(s, ref = iso()) {
+  const meta = s.cfg.metaDia;
+  if (!s.listas.habitos.length) return 0;
+  let n = pctDoDia(s, ref) >= meta ? 1 : 0;
   let k = maisDias(ref, -1);
   for (let guarda = 0; guarda < 3650; guarda++) {
-    if (pctDia(dias[k]) < meta) break;
+    if (pctDoDia(s, k) < meta) break;
     n++;
     k = maisDias(k, -1);
   }
   return n;
 }
-export function semana(dias, ref = iso()) {
+export function semana(s, ref = iso()) {
   const seg = maisDias(ref, -((emDia(ref).getDay() + 6) % 7));
   return DIAS_SEMANA.map((nome, i) => {
     const k = maisDias(seg, i);
-    return { k, nome, hoje: k === ref, futuro: k > ref, pct: dias[k] ? pctDia(dias[k]) : null };
+    return { k, nome, hoje: k === ref, futuro: k > ref, pct: s.dias[k] ? pctDoDia(s, k) : null };
   });
 }
-export const semanaPilar = (dias, p, ref = iso()) =>
-  semana(dias, ref).map(d => ({ ...d, pct: dias[d.k] ? pctPilar(dias[d.k], p) : null }));
+export function semanaPilar(s, pilarId, ref = iso()) {
+  const itens = habitosDo(s, pilarId);
+  return semana(s, ref).map(d => ({ ...d, pct: s.dias[d.k] ? pctPilar(s.dias[d.k], itens) : null }));
+}
+/* dias do mês em que o pilar teve pelo menos uma resposta "sim" */
+export function diasComPilar(s, pilarId, ref = iso()) {
+  const itens = habitosDo(s, pilarId);
+  if (!itens.length) return 0;
+  return Object.entries(s.dias)
+    .filter(([k, r]) => k.slice(0, 7) === ref.slice(0, 7) && itens.some(i => r[i.id] === 'sim')).length;
+}
+export const contarHabito = (s, id, ref = iso()) =>
+  Object.entries(s.dias).filter(([k, r]) => k.slice(0, 7) === ref.slice(0, 7) && r[id] === 'sim').length;
 
-export const contarHabito = (dias, id, ref = iso()) =>
-  Object.entries(dias).filter(([k, r]) => k.slice(0, 7) === ref.slice(0, 7) && r[id] === 'sim').length;
-
-/* quantos dos últimos n dias o pilar ficou em pé (75% ou mais dele) */
-export function aderenciaPilar(dias, p, n = 7, ref = iso()) {
+/* quantos dos últimos n dias o pilar ficou em pé (75% dele ou mais) */
+export function aderenciaPilar(s, pilarId, n = 7, ref = iso()) {
+  const itens = habitosDo(s, pilarId);
   let bons = 0;
-  for (let i = 0; i < n; i++) if (pctPilar(dias[maisDias(ref, -i)], p) >= 75) bons++;
+  for (let i = 0; i < n; i++) if (pctPilar(s.dias[maisDias(ref, -i)], itens) >= 75) bons++;
   return { bons, n, pct: Math.round((bons / n) * 100) };
+}
+/* treinos por semana nas últimas n semanas — serve de gráfico sem dado inventado */
+export function porSemana(s, pilarId, n = 7, ref = iso()) {
+  const itens = habitosDo(s, pilarId);
+  return Array.from({ length: n }, (_, w) => {
+    let dias = 0;
+    for (let i = 0; i < 7; i++) {
+      const k = maisDias(ref, -((n - 1 - w) * 7 + (6 - i)));
+      if (k <= ref && pctPilar(s.dias[k], itens) > 0) dias++;
+    }
+    return dias;
+  });
 }
 
 /* ---- ciclo de 90 dias ---- */
@@ -142,18 +201,16 @@ export function ciclo(s, ref = iso()) {
     terminou: bruto > CICLO_DIAS,
   };
 }
-/* dias do ciclo já vividos que bateram a meta */
 export function aderencia(s, ref = iso()) {
   let bons = 0, contados = 0;
   for (let i = 0; i < CICLO_DIAS; i++) {
     const k = maisDias(s.cicloInicio, i);
     if (k > ref) break;
     contados++;
-    if (pctDia(s.dias[k]) >= META_DIA) bons++;
+    if (pctDoDia(s, k) >= s.cfg.metaDia) bons++;
   }
   return { bons, contados, pct: contados ? Math.round((bons / contados) * 100) : 0 };
 }
-/* as 13 semanas do ciclo, pra barra do percurso */
 export function semanasDoCiclo(s, ref = iso()) {
   const atual = ciclo(s, ref).semana;
   return Array.from({ length: 13 }, (_, w) => {
@@ -164,7 +221,7 @@ export function semanasDoCiclo(s, ref = iso()) {
       const k = maisDias(s.cicloInicio, idx);
       if (k > ref) break;
       contados++;
-      if (pctDia(s.dias[k]) >= META_DIA) bons++;
+      if (pctDoDia(s, k) >= s.cfg.metaDia) bons++;
     }
     return { semana: w + 1, contados, atual: w + 1 === atual, pct: contados ? Math.round((bons / contados) * 100) : null };
   });
@@ -172,13 +229,12 @@ export function semanasDoCiclo(s, ref = iso()) {
 
 /* ---- dinheiro ---- */
 export const brl = n => 'R$ ' + Math.abs(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-export const dinheiro = n => (n < 0 ? '− ' : '') + brl(n);
 const cent = n => Math.round(n * 100) / 100;
 
 export const doMes = (tx, ref = iso()) => tx.filter(t => t.data.slice(0, 7) === ref.slice(0, 7));
 export function caixa(tx) {
-  const entradas = cent(tx.filter(t => t.v > 0).reduce((s, t) => s + t.v, 0));
-  const saidas = cent(tx.filter(t => t.v < 0).reduce((s, t) => s - t.v, 0));
+  const entradas = cent(tx.filter(t => t.v > 0).reduce((a, t) => a + t.v, 0));
+  const saidas = cent(tx.filter(t => t.v < 0).reduce((a, t) => a - t.v, 0));
   return { entradas, saidas, saldo: cent(entradas - saidas) };
 }
 export function porCategoria(tx) {
@@ -198,102 +254,115 @@ export const extraDoDia = (s, ref = iso()) => (s.extra && s.extra[ref]) || {};
 export function macrosDoDia(s, ref = iso()) {
   const ex = extraDoDia(s, ref);
   let prot = 0, kcal = 0, feitas = 0;
-  REFEICOES.forEach((r, i) => { if (ex['rf' + i]) { prot += r.prot; kcal += r.kcal; feitas++; } });
-  return { prot, kcal, feitas, total: REFEICOES.length, agua: ex.agua || 0 };
+  s.listas.refeicoes.forEach(r => {
+    if (ex['rf' + r.id]) { prot += Number(r.prot) || 0; kcal += Number(r.kcal) || 0; feitas++; }
+  });
+  return { prot, kcal, feitas, total: s.listas.refeicoes.length, agua: ex.agua || 0 };
+}
+export const horasDoDia = (s, ref = iso()) => Number(extraDoDia(s, ref).horas) || 0;
+export function horasDaSemana(s, ref = iso()) {
+  return semana(s, ref).map(d => ({ ...d, horas: horasDoDia(s, d.k) }));
 }
 
-/* ---- metas, cada uma ancorada numa fase do ciclo ---- */
+/* ---- metas ---- */
 export function progresso(meta, s) {
-  if (meta.tipo === 'treinos') {
-    const v = contarHabito(s.dias, 'treino');
-    return { p: Math.min(100, Math.round((v / meta.alvo) * 100)), sub: `${v} de ${meta.alvo} treinos no mês` };
+  const alvo = Number(meta.alvo) || 0;
+  if (meta.tipo === 'habito') {
+    const v = contarHabito(s, meta.habitoId);
+    const h = s.listas.habitos.find(x => x.id === meta.habitoId);
+    if (!h) return { p: 0, sub: 'escolha um hábito pra contar' };
+    return { p: alvo ? Math.min(100, Math.round((v / alvo) * 100)) : 0, sub: `${v} de ${alvo} no mês · ${h.nome}` };
   }
   if (meta.tipo === 'saldo') {
     const { saldo } = caixa(doMes(s.tx));
     return { p: saldo >= 0 ? 100 : 0, sub: saldo >= 0 ? `Saldo de ${brl(saldo)}` : `No vermelho em ${brl(saldo)}` };
   }
   if (meta.tipo === 'dieta') {
-    const d = aderenciaPilar(s.dias, pilar('diet'));
-    return { p: Math.min(100, Math.round((d.pct / meta.alvo) * 100)), sub: `${d.bons} de ${d.n} dias na linha` };
+    const d = aderenciaPilar(s, 'diet');
+    return { p: alvo ? Math.min(100, Math.round((d.pct / alvo) * 100)) : 0, sub: `${d.bons} de ${d.n} dias na linha` };
   }
   if (meta.tipo === 'proteina') {
     const { prot } = macrosDoDia(s);
-    return { p: Math.min(100, Math.round((prot / meta.alvo) * 100)), sub: `${prot} g de ${meta.alvo} g hoje` };
+    return { p: Math.min(100, Math.round((prot / s.cfg.proteina) * 100)), sub: `${prot} g de ${s.cfg.proteina} g hoje` };
   }
-  return { p: Math.min(100, Math.round((meta.valor / meta.alvo) * 100)), sub: meta.sub };
-}
-export const metasDaFase = (s, faseId) => s.metas.filter(m => m.fase === faseId);
-
-/* ---- estado salvo no aparelho ---- */
-const CHAVE = 'ritmo:v1';
-
-function sementeDias() {
-  const hoje = iso(), todosSim = Object.fromEntries(HABITOS.map(h => [h.id, 'sim']));
-  const d = {};
-  for (let i = 1; i <= 11; i++) d[maisDias(hoje, -i)] = { ...todosSim };
-  d[maisDias(hoje, -2)] = { ...todosSim, cardio: 'nao' };
-  d[maisDias(hoje, -5)] = { ...todosSim, cardio: 'nao', creatina: null };
-  d[hoje] = {
-    aulas: 'sim', estudo: 'sim', lista: 'sim', treino: 'sim',
-    sem_lixo: 'sim', marmita: 'sim', horas: 'sim', board: 'sim', gastos: 'sim', limite: 'nao',
+  const valor = Number(meta.valor) || 0;
+  return {
+    p: alvo ? Math.min(100, Math.round((valor / alvo) * 100)) : 0,
+    sub: `${valor.toLocaleString('pt-BR')} de ${alvo.toLocaleString('pt-BR')}`,
   };
-  return d;
 }
-function sementeTx() {
-  const h = iso();
-  return [
-    { id: 1, data: h,               desc: 'Almoço no RU',           cat: 'Alimentação', meio: 'Pix',           v: -14.50 },
-    { id: 2, data: h,               desc: 'Passagem de ônibus',     cat: 'Transporte',  meio: 'Cartão',        v: -9.20 },
-    { id: 3, data: h,               desc: 'Café da tarde',          cat: 'Alimentação', meio: 'Pix',           v: -8.00 },
-    { id: 4, data: maisDias(h, -1), desc: 'Bolsa do estágio',       cat: 'Renda',       meio: 'Transferência', v: 1200.00 },
-    { id: 5, data: maisDias(h, -1), desc: 'Whey protein',           cat: 'Academia',    meio: 'Crédito',       v: -139.90 },
-    { id: 6, data: maisDias(h, -2), desc: 'Mensalidade academia',   cat: 'Academia',    meio: 'Débito',        v: -99.90 },
-    { id: 7, data: maisDias(h, -3), desc: 'Freela de landing page', cat: 'Renda',       meio: 'Pix',           v: 600.00 },
-    { id: 8, data: maisDias(h, -4), desc: 'Cinema com a galera',    cat: 'Lazer',       meio: 'Crédito',       v: -48.00 },
-    { id: 9, data: maisDias(h, -5), desc: 'Mercado do mês',         cat: 'Alimentação', meio: 'Débito',        v: -213.40 },
-  ];
-}
-export const METAS_PADRAO = [
-  { id: 'treinos',  fase: 'base',  nome: 'Treinar 20 vezes no mês',           tipo: 'treinos',  alvo: 20 },
-  { id: 'dieta',    fase: 'base',  nome: 'Dieta em pé 6 dias por semana',     tipo: 'dieta',    alvo: 86 },
-  { id: 'positivo', fase: 'ritmo', nome: 'Fechar o mês no positivo',          tipo: 'saldo',    alvo: 0 },
-  { id: 'proteina', fase: 'ritmo', nome: `Bater ${META_PROTEINA} g de proteína no dia`, tipo: 'proteina', alvo: META_PROTEINA },
-  { id: 'viagem',   fase: 'pico',  nome: 'Juntar R$ 3.000 pra viagem de julho', tipo: 'manual', valor: 1740, alvo: 3000, sub: 'R$ 1.740 de R$ 3.000' },
-  { id: 'media',    fase: 'pico',  nome: 'Média acima de 8,0 no semestre',    tipo: 'manual',   valor: 81, alvo: 80, sub: 'Média parcial de 8,1' },
-];
+export const metasDaFase = (s, faseId) => s.listas.metas.filter(m => m.fase === faseId);
 
-export const semente = () => ({
-  versao: 1,
-  exemplo: true,          // some quando ele limpa os dados de exemplo
-  anim: true,             // animações ligadas (Ajustes desliga)
-  tema: 'sistema',        // 'sistema' | 'claro' | 'escuro'
-  cicloInicio: maisDias(iso(), -11),   // o exemplo começa no dia 12 do ciclo
-  dias: sementeDias(),
-  extra: { [iso()]: { rf0: true, rf1: true, rf2: true, rf3: true, agua: 3 } },
-  tx: sementeTx(),
-  metas: METAS_PADRAO,
-  marcados: { lb0: true, lb1: true },   // só o que não é do dia (lembretes)
+/* ---- CRUD genérico das listas ---- */
+export const novoId = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
+
+export function comItem(s, chave, item) {
+  const lista = s.listas[chave] || [];
+  const i = lista.findIndex(x => x.id === item.id);
+  const nova = i >= 0 ? lista.map(x => (x.id === item.id ? { ...x, ...item } : x)) : [...lista, { ...item, id: item.id || novoId() }];
+  return { ...s, listas: { ...s.listas, [chave]: nova } };
+}
+export function semItem(s, chave, id) {
+  return { ...s, listas: { ...s.listas, [chave]: (s.listas[chave] || []).filter(x => x.id !== id) } };
+}
+
+/* ---- estado salvo no aparelho, um por perfil ---- */
+const CHAVE_PERFIL = 'ritmo:perfil';
+const chaveDe = id => `ritmo:v2:${id}`;
+
+export const CFG_PADRAO = {
+  metaDia: 70,        // % de "sim" pro dia contar na sequência
+  proteina: 150,      // g por dia
+  kcal: 2400,
+  garrafas: 6,        // copos/garrafas de água por dia
+  mlGarrafa: 500,
+  horasSemana: 30,    // meta de horas de estágio na semana
+};
+/* Um perfil nasce vazio: só a estrutura, nenhum dado inventado.
+   As categorias de gasto vêm preenchidas porque são genéricas — e dá pra editar. */
+export const novoPerfil = nome => ({
+  versao: 2,
+  nome,
+  anim: true,
+  tema: 'sistema',
+  cicloInicio: iso(),
+  cfg: { ...CFG_PADRAO },
+  dias: {},
+  extra: {},
+  tx: [],
+  listas: {
+    habitos: [], refeicoes: [], exercicios: [], materias: [], entregas: [], tarefas: [], metas: [],
+    cats: ['Alimentação', 'Transporte', 'Academia', 'Faculdade', 'Lazer', 'Renda']
+      .map(n => ({ id: novoId(), nome: n })),
+    split: DIAS_SEMANA.map(d => ({ id: d.toLowerCase(), nome: d, meta: '' })),
+  },
 });
 
-export function carregar() {
+export function carregarPerfil(id) {
+  const base = novoPerfil((PERFIS.find(p => p.id === id) || { nome: 'Pedro' }).nome);
   try {
-    const bruto = localStorage.getItem(CHAVE);
-    if (!bruto) return semente();
+    const bruto = localStorage.getItem(chaveDe(id));
+    if (!bruto) return base;
     const s = JSON.parse(bruto);
-    const r = {
-      ...semente(), ...s,
-      dias: s.dias || {}, extra: { ...s.extra }, marcados: { ...s.marcados },
-      metas: s.metas && s.metas.length ? s.metas : METAS_PADRAO,
+    return {
+      ...base, ...s,
+      cfg: { ...base.cfg, ...s.cfg },
+      dias: s.dias || {}, extra: s.extra || {}, tx: s.tx || [],
+      listas: { ...base.listas, ...s.listas },
     };
-    if (!s.cicloInicio) r.cicloInicio = Object.keys(r.dias).sort()[0] || iso();
-    return r;
   } catch {
-    return semente();        // storage bloqueado ou JSON corrompido: começa limpo
+    return base;          // storage bloqueado ou JSON corrompido: começa limpo
   }
 }
-export function salvar(s) {
-  try { localStorage.setItem(CHAVE, JSON.stringify(s)); } catch { /* aba privada: roda sem salvar */ }
+export function salvarPerfil(id, s) {
+  try { localStorage.setItem(chaveDe(id), JSON.stringify(s)); } catch { /* aba privada: roda sem salvar */ }
 }
-export const vazio = () => ({
-  ...semente(), exemplo: false, cicloInicio: iso(), dias: {}, extra: {}, tx: [], marcados: {},
-});
+export function perfilEscolhido() {
+  try { return localStorage.getItem(CHAVE_PERFIL); } catch { return null; }
+}
+export function escolherPerfil(id) {
+  try {
+    localStorage.setItem(CHAVE_PERFIL, id);
+    localStorage.removeItem('ritmo:v1');   // dados de exemplo da versão anterior
+  } catch { /* segue sem salvar */ }
+}

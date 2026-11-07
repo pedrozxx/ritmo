@@ -37,6 +37,9 @@ const ICONS = {
   sobe: <path d="M7.5 16.5l9-9M9.5 7.5h7v7" />,
   desce: <path d="M16.5 16.5l-9-9M14.5 16.5h-7v-7" />,
   seta: <path d="M9.5 6l6 6-6 6" />,
+  lapis: <><path d="M4 20l1-4.4L15.7 4.9a2.3 2.3 0 013.3 3.3L8.3 19 4 20z" /><path d="M14.3 6.3l3.4 3.4" /></>,
+  lixo: <><path d="M4.5 7h15M9.5 7V5.6A1.6 1.6 0 0111.1 4h1.8a1.6 1.6 0 011.6 1.6V7" /><path d="M6.6 7l.8 11.5A1.6 1.6 0 009 20h6a1.6 1.6 0 001.6-1.5L17.4 7" /></>,
+  menos: <path d="M5 12h14" />,
 };
 export const Ico = ({ n, s = 19, w = 1.6 }) => (
   <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={w}

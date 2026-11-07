@@ -6,12 +6,14 @@ import { rmSync, existsSync } from 'node:fs';
 const REMOTO = 'https://github.com/pedrozxx/ritmo.git';
 const SITE = 'https://pedrozxx.github.io/ritmo/';
 
-const rodar = (cmd, args, opts = {}) =>
-  execFileSync(cmd, args, { stdio: 'inherit', shell: process.platform === 'win32', ...opts });
+/* chama o npm.cmd direto no Windows em vez de ligar o shell: com shell ligado
+   os argumentos não são protegidos e a mensagem do commit se parte em pedaços. */
+const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const rodar = (cmd, args) => execFileSync(cmd, args, { stdio: 'inherit' });
 
-rodar('npm', ['run', 'check']);
-rodar('npm', ['run', 'smoke']);
-rodar('npm', ['run', 'build']);
+rodar(NPM, ['run', 'check']);
+rodar(NPM, ['run', 'smoke']);
+rodar(NPM, ['run', 'build']);
 
 if (!existsSync('dist/index.html')) throw new Error('o build não gerou dist/index.html');
 rmSync('dist/.git', { recursive: true, force: true });
