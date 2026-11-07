@@ -1,5 +1,7 @@
 # Ritmo
 
+**No ar: https://pedrozxx.github.io/ritmo/**
+
 App de rotina: checklist de **Sim / Não** para faculdade, academia, dieta, estágio e
 financeiro, organizado num **percurso de 90 dias** em 3 fases. Tem dashboard, metas
 ancoradas em cada fase e controle de gastos. PWA — instala na tela de início do iPhone
@@ -9,21 +11,30 @@ e roda em tela cheia, sem App Store.
 
 ```bash
 npm run dev      # servidor local, acessível pela rede (--host)
-npm run build    # gera dist/ pra publicar
-npm run check    # regras: sequência, dinheiro, semana, valor digitado
-npm run smoke    # renderiza as 8 telas em Node pra pegar erro de render
+npm run deploy   # check + smoke + build e publica no GitHub Pages
+npm run build    # só gera o dist/
+npm run check    # regras: sequência, ciclo, dieta, dinheiro
+npm run smoke    # renderiza as 10 telas em Node pra pegar erro de render
 npm run icons    # regera os ícones do app
 ```
 
-## Abrir no iPhone agora (mesmo wi-fi)
+## Instalar no iPhone
 
-1. `npm run dev` no PC.
-2. No Safari do iPhone: `http://192.168.15.8:5173` (o IP aparece no terminal como "Network").
-3. Compartilhar → **Adicionar à Tela de Início**.
+1. Abra **https://pedrozxx.github.io/ritmo/** no Safari.
+2. Compartilhar → **Adicionar à Tela de Início**.
 
-Nesse modo falta o offline: o service worker só registra em `https` ou `localhost`.
-Pra ter o app completo (abre sem internet, ícone próprio, tela cheia de verdade),
-publique o `dist/` em qualquer host com https — Vercel, Netlify ou Cloudflare Pages.
+Pronto: abre em tela cheia, com ícone próprio, funciona sem internet depois da
+primeira visita e não depende do PC estar ligado.
+
+## Publicar uma versão nova
+
+`npm run deploy` — roda as verificações, builda e empurra o `dist/` pro branch
+`gh-pages`. O GitHub Pages troca a versão no ar em cerca de um minuto. O código-fonte
+mora no branch `main`; o site, no `gh-pages`.
+
+Em dev o app roda na raiz (`/`) e publicado roda em `/ritmo/` — por isso o `base` do
+`vite.config.js` muda conforme o comando, e os caminhos do manifest e do service
+worker são relativos.
 
 ## Onde mexer
 

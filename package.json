@@ -9,7 +9,8 @@
     "preview": "vite preview --host",
     "check": "node src/check.mjs",
     "icons": "node tools/icon.mjs",
-    "smoke": "node src/smoke.mjs"
+    "smoke": "node src/smoke.mjs",
+    "deploy": "node tools/deploy.mjs"
   },
   "dependencies": {
     "framer-motion": "^11.15.0",
