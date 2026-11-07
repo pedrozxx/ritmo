@@ -277,6 +277,21 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;-webki
   border-radius:10px;background:var(--surface-2)}
 .itens .chips{margin:8px 0 6px}
 
+/* linha alta (refeição com itens, exercício com nota): o check sobe pro topo
+   em vez de flutuar no meio do bloco */
+.row.alto{align-items:flex-start}
+.row.alto .yn, .row.alto .check{margin-top:2px}
+/* a nota tem que cair embaixo da prescrição, não emendar nela */
+.row-txt .nota{display:block;margin:4px 0 0}
+
+/* registrar autoteste: texto em cima, as duas pernas embaixo */
+.teste{padding:10px 0}
+.teste+.teste{border-top:1px solid var(--line)}
+.teste>b{display:block;font-size:13.5px;font-weight:600}
+.teste>span{display:block;font-size:11.5px;color:var(--ink-3);line-height:1.45;margin:2px 0 9px}
+.teste-pernas{display:flex;gap:9px}
+.teste-pernas .field{flex:1;margin:0}
+
 /* primeira abertura: quem é você */
 .escolha{height:100%;overflow-y:auto;display:grid;place-items:center;padding:32px 24px;text-align:center;
   background:var(--bg);

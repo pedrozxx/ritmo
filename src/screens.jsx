@@ -432,7 +432,7 @@ function Academia({ s, a }) {
               const chave = `tx${treinoHoje.id}-${e.ord}`;
               const titulo = e.nome || e.ref;
               return (
-                <div className="row" key={chave}>
+                <div className="row alto" key={chave}>
                   <Check on={ex[chave]} onClick={() => a.toggleExtra(chave)} label={titulo} />
                   <div className="row-txt">
                     <b>{titulo}</b>
@@ -612,16 +612,20 @@ function NovoTeste({ onSalvar }) {
     <>
       <span className="label" style={{ display: 'block', marginBottom: 8 }}>Registrar um teste novo</span>
       {J.AUTOTESTES.map(t => (
-        <div className="row" key={t.k}>
-          <div className="row-txt"><b>{t.nome}</b><span>{t.como}</span></div>
-          {['d', 'e'].map(lado => (
-            <div className="field compacto" key={lado}>
-              <input className="campo-input num" inputMode="numeric"
-                aria-label={`${t.nome}, perna ${lado === 'd' ? 'direita' : 'esquerda'}`}
-                placeholder={lado === 'd' ? 'D' : 'E'} value={v[t.k + lado] ?? ''}
-                onChange={e => setV(p => ({ ...p, [t.k + lado]: e.target.value.replace(/\D/g, '').slice(0, 3) }))} />
-            </div>
-          ))}
+        <div className="teste" key={t.k}>
+          <b>{t.nome}</b>
+          <span>{t.como}</span>
+          <div className="teste-pernas">
+            {[['d', 'direita'], ['e', 'esquerda']].map(([lado, rot]) => (
+              <div className="field" key={lado}>
+                <span>{lado.toUpperCase()}</span>
+                <input className="campo-input num" inputMode="numeric"
+                  aria-label={`${t.nome}, perna ${rot}`}
+                  placeholder="reps" value={v[t.k + lado] ?? ''}
+                  onChange={e => setV(p => ({ ...p, [t.k + lado]: e.target.value.replace(/\D/g, '').slice(0, 3) }))} />
+              </div>
+            ))}
+          </div>
         </div>
       ))}
       <motion.button className="btn-primary" style={{ marginTop: 12, opacity: completo ? 1 : .45 }}
@@ -1124,7 +1128,7 @@ function RefeicaoGrupo({ g, ex, a }) {
   const marcada = g.opcoes.find(o => ex['rf' + o.id]);
   const r = marcada || g.opcoes.find(o => o.id === sel) || g.opcoes[0];
   return (
-    <div className="row">
+    <div className="row alto">
       <Check on={!!ex['rf' + r.id]} onClick={() => a.toggleExtra('rf' + r.id)} label={r.nome} />
       <div className="row-txt">
         <b>{[g.nome, g.hora].filter(Boolean).join(' · ')}</b>

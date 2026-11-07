@@ -6,6 +6,7 @@ import {
 } from 'framer-motion';
 import * as D from './store.js';
 import * as J from './joelho.js';
+import * as Di from './dieta.js';
 import { TELAS } from './screens.jsx';
 import { Folha, Gerenciador } from './editor.jsx';
 import { Anim, Ico, LISTA, SUAVE, MOLA_CALMA } from './ui.jsx';
@@ -37,7 +38,13 @@ const subtitulo = (tela, s) => {
       const v = J.voltaAoCampo(s.volta, s.listas.testes);
       return `${luz ? `Hoje no ${luz}` : 'Sem check hoje'} · ${v.feitos} de ${v.total} critérios`;
     })(),
-    dieta: m.total ? `${m.feitas} de ${m.total} refeições · ${m.prot} g` : 'sem refeições cadastradas',
+    dieta: (() => {
+      /* conta horário, não refeição: os três lanches são um só */
+      const g = Di.gruposDeRefeicao(s.listas.refeicoes);
+      if (!g.length) return 'sem refeições cadastradas';
+      const f = Di.gruposFeitos(g, D.extraDoDia(s));
+      return `${f.feitos} de ${f.total} refeições${m.prot ? ` · ${m.prot} g` : ''}`;
+    })(),
     faculdade: `${s.listas.materias.length} ${s.listas.materias.length === 1 ? 'matéria' : 'matérias'}`,
     estagio: `${String(D.horasDaSemana(s).reduce((t, d) => t + d.horas, 0)).replace('.', ',')}h de ${s.cfg.horasSemana}h na semana`,
     financeiro: mesAtual(),
