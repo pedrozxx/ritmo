@@ -2,10 +2,14 @@
 
 **No ar: https://pedrozxx.github.io/ritmo/**
 
-App de rotina: checklist de **Sim / Não** para faculdade, academia, dieta, estágio e
-financeiro, organizado num **percurso de 90 dias** em 3 fases. Tem dashboard, metas
-ancoradas em cada fase e controle de gastos. PWA — instala na tela de início do iPhone
+App de rotina para **duas pessoas** (Pedro e Ana), cada uma com os próprios dados.
+Checklist de **Sim / Não** em cinco pilares — faculdade, academia, dieta, estágio e
+financeiro — organizado num **percurso de 90 dias** em 3 fases, com dashboard, metas
+ancoradas em cada fase e controle de gastos. PWA: instala na tela de início do iPhone
 e roda em tela cheia, sem App Store.
+
+O app **nasce vazio de propósito**. Nada de dado de exemplo: cada pessoa cadastra os
+próprios hábitos, refeições, exercícios, matérias, entregas, tarefas e metas.
 
 ## Comandos
 
@@ -13,8 +17,8 @@ e roda em tela cheia, sem App Store.
 npm run dev      # servidor local, acessível pela rede (--host)
 npm run deploy   # check + smoke + build e publica no GitHub Pages
 npm run build    # só gera o dist/
-npm run check    # regras: sequência, ciclo, dieta, dinheiro
-npm run smoke    # renderiza as 10 telas em Node pra pegar erro de render
+npm run check    # regras: rotina, sequência, ciclo, dieta, dinheiro, metas, CRUD
+npm run smoke    # renderiza as 10 telas e os 9 editores em Node
 npm run icons    # regera os ícones do app
 ```
 
@@ -22,59 +26,68 @@ npm run icons    # regera os ícones do app
 
 1. Abra **https://pedrozxx.github.io/ritmo/** no Safari.
 2. Compartilhar → **Adicionar à Tela de Início**.
+3. Na primeira abertura, escolha quem está usando.
 
-Pronto: abre em tela cheia, com ícone próprio, funciona sem internet depois da
-primeira visita e não depende do PC estar ligado.
+Funciona sem internet depois da primeira visita e não depende do PC estar ligado.
 
-## Publicar uma versão nova
+## Como funcionam os dois perfis
 
-`npm run deploy` — roda as verificações, builda e empurra o `dist/` pro branch
-`gh-pages`. O GitHub Pages troca a versão no ar em cerca de um minuto. O código-fonte
-mora no branch `main`; o site, no `gh-pages`.
+Pedro e Ana são dois espaços separados no mesmo app: cada um tem rotina, dieta, metas,
+histórico e dinheiro próprios. Troca-se de pessoa no topo do menu lateral, e a escolha
+fica guardada até alguém trocar de novo.
 
-Em dev o app roda na raiz (`/`) e publicado roda em `/ritmo/` — por isso o `base` do
-`vite.config.js` muda conforme o comando, e os caminhos do manifest e do service
-worker são relativos.
+Os dados de cada perfil ficam no `localStorage` **do aparelho onde foram digitados**
+(`ritmo:v2:pedro` e `ritmo:v2:ana`). Ou seja: se cada um instalar no próprio iPhone,
+os dois veem os dois perfis, mas cada aparelho guarda só o que foi digitado nele. Pra
+compartilhar de verdade entre aparelhos seria preciso backend e login — fica pra
+quando fizer falta.
 
-## Onde mexer
+## O que dá pra cadastrar
 
-| O quê | Arquivo |
+Toda lista do app tem um botão **Editar** que abre o mesmo editor: criar, mudar e
+apagar. As listas são hábitos (por pilar), refeições, exercícios, matérias, entregas,
+tarefas, categorias de gasto, divisão da semana de treino e metas.
+
+Os **cinco pilares são fixos** porque cada um tem a sua tela. Os hábitos dentro deles
+são todos seus.
+
+## As regras que o app calcula sozinho
+
+| O quê | Como |
 |---|---|
-| Os 12 hábitos e os 5 pilares | `src/store.js` → `PILARES` |
-| Regra da sequência (70% do dia) | `src/store.js` → `META_DIA` |
-| As 3 fases do ciclo | `src/store.js` → `FASES` e `CICLO_DIAS` |
-| Refeições, proteína, kcal, água | `src/store.js` → `REFEICOES`, `META_PROTEINA`, `GARRAFAS` |
-| Metas e a fase de cada uma | `src/store.js` → `METAS_PADRAO` |
-| Matérias, exercícios, entregas, horas | `src/screens.jsx` (constantes no topo) |
-| Cores, claro e escuro | `src/app.css` (tokens no `:root`) |
-| Números do movimento | `src/ui.jsx` (`SUAVE`, `MOLA`, `CASCATA`) |
-
-## Como funciona a sequência
-
-Um dia entra na sequência quando pelo menos **70%** dos itens estão em "Sim".
-O dia de hoje fica aberto: enquanto não bate a meta ele não soma, mas também não
-quebra a contagem — só vira falha quando passa da meia-noite.
+| % do dia | Hábitos em "Sim" ÷ hábitos cadastrados. Hábito apagado não conta em dia nenhum. |
+| Sequência | Dias seguidos com pelo menos `metaDia` % (padrão 70). Hoje fica aberto: não soma até bater, mas também não quebra. |
+| Aderência do ciclo | Dias já vividos do ciclo que bateram a meta. |
+| Proteína e caloria | Soma das refeições que você marcou — você não digita grama no dia a dia. |
+| Dias de treino | Dias do mês com algum "Sim" no pilar Academia. |
+| Média da faculdade | Média das notas das matérias cadastradas. |
+| Horas de estágio | Soma das horas lançadas em cada dia da semana. |
+| Saldo | Entradas − saídas do mês corrente. |
 
 ## O percurso de 90 dias
 
-O ciclo começa na data em `cicloInicio` e tem 3 fases de 30 dias — **Base** (criar o
-hábito), **Ritmo** (subir a carga) e **Pico** (fechar forte). A tela Percurso mostra em
-que dia e semana você está, as 13 semanas coloridas pela aderência de cada uma, e as
-metas de cada fase. A aderência do ciclo é a fração dos dias já vividos que bateram os
-70%. Passados os 90 dias o ciclo fecha e aparece o botão de começar o próximo —
-Ajustes também reinicia a qualquer momento.
+Três fases de 30 dias: **Base** (criar o hábito), **Ritmo** (subir a carga) e **Pico**
+(fechar forte). A tela Percurso mostra o dia, a semana, as 13 semanas coloridas pela
+aderência e as metas de cada fase. Passados os 90 dias o ciclo fecha e aparece o botão
+de começar o próximo; Ajustes reinicia a qualquer momento.
 
-## A dieta
+Cada meta se mede de um jeito: na mão, contando um hábito no mês, fechando o mês no
+positivo, pelos dias de dieta na semana ou pela proteína do dia.
 
-As 6 refeições do dia são um checklist: marcar uma soma a proteína e as calorias dela,
-então **os gramas são derivados, não digitados**. A água são 6 garrafas de 500 ml que
-enchem no toque. Além disso o pilar Dieta tem 3 itens de Sim / Não (não saí da dieta,
-levei a marmita, tomei a creatina) que entram na rotina do dia como qualquer outro.
+## Onde mexer no código
 
-## Onde os dados ficam
+| O quê | Arquivo |
+|---|---|
+| Pilares, fases e as regras | `src/store.js` |
+| Campos de cada formulário | `src/store.js` → `SCHEMAS` |
+| Valores padrão de um perfil novo | `src/store.js` → `CFG_PADRAO`, `novoPerfil` |
+| Editor genérico e folha de baixo | `src/editor.jsx` |
+| Cores, claro e escuro | `src/app.css` (tokens no `:root`) |
+| Números do movimento | `src/ui.jsx` (`SUAVE`, `MOLA`, `CASCATA`) |
 
-Tudo no `localStorage` do próprio aparelho, sob a chave `ritmo:v1`. Não tem servidor,
-login nem nuvem. Apagar os dados do site apaga o histórico.
+## Publicar uma versão nova
 
-Os dados que vêm na primeira abertura são **exemplo** e estão marcados como tal no app —
-"Limpar" no banner (ou em Ajustes) zera e começa o histórico de verdade.
+`npm run deploy`. O código-fonte mora no branch `main`; o site, no `gh-pages`. Em dev
+o app roda na raiz (`/`) e publicado roda em `/ritmo/` — por isso o `base` do
+`vite.config.js` muda conforme o comando e os caminhos do manifest e do service worker
+são relativos.
