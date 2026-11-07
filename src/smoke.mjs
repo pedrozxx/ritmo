@@ -158,6 +158,13 @@ try {
     'a tela mostra exatamente os hábitos que valem hoje');
   console.log('ok — a rotina respeita dia da semana e modo');
 
+  // Ajustes oferece o .ics quando há hábito com horário, e some quando não há
+  const ajRotina = texto(renderToString(h(TELAS.ajustes, { s: comRotina, a: acoes })));
+  assert.ok(ajRotina.includes('avisos pro calendário'), 'devia oferecer a exportação');
+  const ajVazio = texto(renderToString(h(TELAS.ajustes, { s: vazio, a: acoes })));
+  assert.ok(ajVazio.includes('Nenhum hábito com horário'), 'sem horário não há o que exportar');
+  console.log('ok — Ajustes exporta os avisos pro calendário');
+
   // a dieta real: alimentos com grama, substituições e os três lanches num grupo só
   const dietaHtml = texto(renderToString(h(TELAS.dieta, { s: comDieta, a: acoes })));
   assert.ok(dietaHtml.includes('Peito de frango sem pele grelhado'), 'alimento devia aparecer');

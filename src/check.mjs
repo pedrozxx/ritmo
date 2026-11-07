@@ -5,6 +5,7 @@ import * as D from './store.js';
 import * as T from './treino.js';
 import * as Di from './dieta.js';
 import * as J from './joelho.js';
+import * as ICS from './ics.js';
 
 const hoje = D.iso();
 
@@ -452,5 +453,71 @@ assert.equal(T.treinoDoDia(comRec, '2026-11-11', 'vermelho').id, 'REC', 'vale at
 assert.equal(T.treinoDoDia(listasPlano, '2026-11-09', 'vermelho'), null,
   'plano sem rotina de recuperação devolve nada, nunca o treino de perna');
 assert.equal(T.recuperacao([{ id: 'z', nome: 'Dia de recuperação' }]).id, 'z', 'acha pelo nome também');
+
+/* ---- avisos no calendário (.ics) ---- */
+assert.equal(ICS.horaIcs('08:00'), '080000');
+assert.equal(ICS.horaIcs('8h05'), '080500');
+assert.equal(ICS.horaIcs('20:55'), '205500');
+assert.equal(ICS.horaIcs('9h'), '090000');
+assert.equal(ICS.horaIcs('25:00'), null, 'hora impossível não vira evento');
+assert.equal(ICS.horaIcs('12:99'), null);
+assert.equal(ICS.horaIcs('manhã'), null);
+assert.equal(ICS.horaIcs(''), null);
+assert.equal(ICS.horaIcs(undefined), null);
+
+assert.equal(ICS.escapar('a,b;c\\d'), 'a\\,b\\;c\\\\d', 'os especiais do iCalendar saem escapados');
+assert.equal(ICS.escapar('uma\nduas'), 'uma\\nduas');
+const bytes = t => new TextEncoder().encode(t).length;
+assert.deepEqual(ICS.dobrar('curta'), ['curta']);
+const longa = 'X'.repeat(200);
+const dobrada = ICS.dobrar(longa);
+assert.ok(dobrada.length > 1, 'linha longa é dobrada');
+assert.ok(dobrada.every(l => bytes(l) <= 75), 'nenhum pedaço passa de 75 octetos');
+assert.equal(dobrada.slice(1).every(l => l.startsWith(' ')), true, 'a continuação começa com espaço');
+assert.equal(dobrada.join('').replace(/ /g, ''), longa, 'juntando de volta dá o original');
+/* acento ocupa dois octetos: contar caractere deixaria a linha longa demais */
+const acentuada = 'ã'.repeat(100);
+const dAcent = ICS.dobrar(acentuada);
+assert.ok(dAcent.every(l => bytes(l) <= 75), 'com acento também respeita o limite em bytes');
+assert.ok(dAcent.some(l => l.length < 75), 'em bytes, cabe menos caractere por linha');
+assert.equal(dAcent.map((l, i) => (i ? l.slice(1) : l)).join(''), acentuada,
+  'nenhum caractere foi cortado no meio');
+
+const hSeg = { id: 'h1', nome: 'Sai pra faculdade', hora: '08:00', meta: 'trajeto', dias: [0, 1, 2, 3, 4], modo: 'aula' };
+const evSeg = ICS.eventoDoHabito(hSeg, '2026-11-11');   // quarta
+assert.equal(evSeg.rrule, 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR');
+assert.equal(evSeg.inicio, '20261109T080000', 'ancora na segunda desta semana, que é o 1º dia escolhido');
+assert.ok(evSeg.desc.includes('Só na semana com aula.'));
+const evSab = ICS.eventoDoHabito({ id: 'h2', nome: 'Pesagem', hora: '08:05', dias: [5] }, '2026-11-11');
+assert.equal(evSab.rrule, 'FREQ=WEEKLY;BYDAY=SA');
+assert.equal(evSab.inicio, '20261114T080500', 'sábado da mesma semana');
+assert.equal(ICS.eventoDoHabito({ id: 'h3', nome: 'Sem hora' }, '2026-11-11'), null,
+  'hábito sem horário não vira evento, e não ganha um inventado');
+assert.equal(ICS.eventoDoHabito({ id: 'h4', nome: 'Todo dia', hora: '07:00' }, '2026-11-11').rrule,
+  'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU', 'sem dias marcados, vale a semana inteira');
+
+const evRe = ICS.eventoDoReteste([{ data: '2026-11-01' }], '2026-11-07');
+assert.equal(evRe.rrule, 'FREQ=DAILY;INTERVAL=28');
+assert.equal(evRe.inicio, '20261129T090000', 'cai 28 dias depois do último teste');
+assert.equal(ICS.eventoDoReteste([], '2026-11-07').inicio, '20261107T090000',
+  'sem teste nenhum, começa hoje');
+
+const perfilIcs = { nome: 'Pedro', modo: 'aula',
+  listas: { habitos: [hSeg, { id: 'h5', nome: 'Só férias', hora: '07:00', modo: 'ferias' },
+    { id: 'h6', nome: 'Sem hora', dias: [0] }], treinos: [{ id: 'A' }], testes: [] } };
+const saida = ICS.avisosDoPerfil(perfilIcs, '2026-11-11');
+assert.equal(saida.eventos.length, 2, 'o hábito com hora do modo atual, mais o reteste');
+assert.equal(saida.semHora, 1, 'o hábito sem horário é contado, não escondido');
+assert.ok(!saida.texto.includes('Só férias'), 'hábito de outro modo não entra');
+assert.ok(saida.texto.startsWith('BEGIN:VCALENDAR\r\n'));
+assert.ok(saida.texto.endsWith('END:VCALENDAR\r\n'));
+assert.equal(saida.texto.split('BEGIN:VEVENT').length - 1, 2);
+assert.equal(saida.texto.split('BEGIN:VALARM').length - 1, 2, 'todo evento leva alarme');
+assert.ok(saida.texto.includes('X-WR-CALNAME:Ritmo · Pedro · com aula'));
+assert.ok(saida.texto.split('\r\n').every(l => l.length <= 75), 'nenhuma linha passa de 75 octetos');
+const semTreino = ICS.avisosDoPerfil({ ...perfilIcs, listas: { ...perfilIcs.listas, treinos: [] } }, '2026-11-11');
+assert.equal(semTreino.eventos.length, 1, 'sem plano de treino não exporta reteste');
+assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').eventos.length, 0,
+  'perfil vazio gera calendário vazio, sem quebrar');
 
 console.log('ok — todas as regras do Ritmo passaram');

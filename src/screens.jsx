@@ -7,6 +7,7 @@ import * as D from './store.js';
 import * as T from './treino.js';
 import * as Di from './dieta.js';
 import * as J from './joelho.js';
+import * as ICS from './ics.js';
 import NOMES_OPENGYM from './nomes-opengym.json';
 /* o plano do Pedro embutido: o botão de Ajustes aplica estes três de uma vez.
    Não é semente — perfil novo continua nascendo vazio, isso só entra no toque. */
@@ -1038,6 +1039,11 @@ function Ajustes({ s, a }) {
       </Card>
 
       <Card>
+        <div className="card-head"><h2>Avisos no calendário</h2></div>
+        <BaixarAvisos s={s} />
+      </Card>
+
+      <Card>
         <div className="card-head"><h2>Ciclo de {D.CICLO_DIAS} dias</h2><Pill t={`dia ${c.dia}`} cor="lilac" /></div>
         <div className="row" style={{ borderTop: 0 }}>
           <div className="row-txt">
@@ -1066,6 +1072,47 @@ function Ajustes({ s, a }) {
         <ConfirmaDuasVezes rotulo="Apagar tudo deste perfil"
           confirma="Toque de novo pra apagar tudo" onOk={a.apagarPerfil} />
       </Card>
+    </>
+  );
+}
+
+/* Gera o .ics e entrega pro sistema. É o único aviso que toca com o app
+   fechado: quem dispara é o Calendário, não o PWA. */
+function BaixarAvisos({ s }) {
+  const [msg, setMsg] = useState('');
+  const { eventos, semHora } = ICS.avisosDoPerfil(s);
+
+  const baixar = () => {
+    const { texto } = ICS.avisosDoPerfil(s);
+    const url = URL.createObjectURL(new Blob([texto], { type: 'text/calendar;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ritmo-${s.nome.toLowerCase()}-${s.modo === 'ferias' ? 'sem-aula' : 'com-aula'}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setMsg(`${eventos.length} ${eventos.length === 1 ? 'aviso' : 'avisos'} no arquivo. Abra e toque em “Adicionar ao Calendário”.`);
+  };
+
+  return (
+    <>
+      <p className="nota" style={{ margin: '0 0 12px' }}>
+        O app não consegue te avisar fechado, mas o Calendário consegue. Isto gera um
+        arquivo com os hábitos que têm horário e com o reteste do joelho, pra você
+        importar uma vez no iPhone. Refaça depois de cada autoteste: a data anda.
+      </p>
+      <motion.button className="btn-primary" style={{ width: '100%', opacity: eventos.length ? 1 : .45 }}
+        disabled={!eventos.length} onClick={baixar} whileTap={{ scale: .97 }}>
+        {eventos.length ? `Baixar ${eventos.length} avisos pro calendário` : 'Nenhum hábito com horário ainda'}
+      </motion.button>
+      {semHora > 0 && (
+        <p className="nota" style={{ marginBottom: 0 }}>
+          {semHora} {semHora === 1 ? 'hábito ficou de fora por não ter horário' : 'hábitos ficaram de fora por não terem horário'}.
+          Preencha o campo Horário em Rotina → Editar.
+        </p>
+      )}
+      {msg && <p className="nota" role="status" style={{ marginBottom: 0 }}>{msg}</p>}
     </>
   );
 }

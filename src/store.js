@@ -32,6 +32,7 @@ export const SCHEMAS = {
   habitos: { um: 'hábito', campos: [
     { k: 'nome', rot: 'O que é', tipo: 'texto', obrig: true, dica: 'Fui pra academia' },
     { k: 'meta', rot: 'Detalhe', tipo: 'texto', dica: 'Push B às 18h' },
+    { k: 'hora', rot: 'Horário', tipo: 'texto', dica: '18:00 — só pra exportar pro calendário' },
     { k: 'dias', rot: 'Em que dias', tipo: 'dias' },
     { k: 'modo', rot: 'Em qual semana', tipo: 'escolha', padrao: '',
       ops: [['', 'Nas duas'], ['aula', 'Só com aula'], ['ferias', 'Só sem aula']] },
