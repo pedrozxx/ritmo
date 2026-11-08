@@ -53,7 +53,16 @@ const HabitosDoPilar = ({ s, a, pilarId, dia = D.iso() }) => {
   const resp = s.dias[dia] || {};
   if (!itens.length) {
     const temNoPilar = D.habitosDo(s, pilarId).length > 0;
-    if (temNoPilar) return <Vazio titulo="Nada hoje" texto="Os hábitos deste pilar são de outros dias da semana." />;
+    if (temNoPilar) {
+      return (
+        <div className="row alto" style={{ borderTop: 0 }}>
+          <div className="row-txt">
+            <b>Nada hoje</b>
+            <span>Os hábitos deste pilar são de outros dias da semana.</span>
+          </div>
+        </div>
+      );
+    }
     return <Convite a={a} chave="habitos" filtro={{ pilar: pilarId }} titulo={`Hábitos de ${D.pilar(pilarId).nome}`}
       rotulo="Cadastrar hábito" texto="Os itens de Sim / Não deste pilar são seus pra criar." />;
   }
@@ -385,7 +394,14 @@ function Rotina({ s, a }) {
             </div>
             {itens.length === 0
               ? noPilar > 0
-                ? <Vazio titulo="Nada hoje" texto={`Os ${noPilar} hábitos de ${pl.nome.toLowerCase()} são de outros dias da semana.`} />
+                ? (
+                  <div className="row alto" style={{ borderTop: 0 }}>
+                    <div className="row-txt">
+                      <b>Nada {hoje ? 'hoje' : 'neste dia'}</b>
+                      <span>Os {noPilar} hábitos de {pl.nome.toLowerCase()} são de outros dias da semana.</span>
+                    </div>
+                  </div>
+                )
                 : <Convite a={a} chave="habitos" filtro={{ pilar: pl.id }} titulo={`Hábitos de ${pl.nome}`}
                   rotulo={`Criar hábito de ${pl.nome}`} texto={`Nenhum hábito de ${pl.nome.toLowerCase()} ainda.`} />
               : (
@@ -432,10 +448,21 @@ function Academia({ s, a }) {
           <span className="label">Divisão da semana</span>
           <button className="more" onClick={() => a.gerir('split', null, 'Divisão da semana')}>Editar</button>
         </div>
+        {/* Um sétimo da tela não comporta "Corpo todo e condicionamento": aqui
+            vai a letra da rotina, e o nome inteiro fica no card de hoje. */}
         <div className="split">
-          {s.listas.split.map((d, i) => (
-            <div key={d.id} className={i === hojeIdx ? 'now' : ''}><b>{d.nome}</b>{d.meta || '—'}</div>
-          ))}
+          {s.listas.split.map((d, i) => {
+            const t = (s.listas.treinos || []).find(x => x.id === d.treinoId);
+            const folga = !d.meta || /^folga$/i.test(d.meta);
+            return (
+              <div key={d.id} className={i === hojeIdx ? 'now' : ''} title={d.meta || 'folga'}>
+                <b>{d.nome}</b>
+                {t
+                  ? <><i className="split-emoji">{t.emoji}</i><u>{t.id}</u></>
+                  : <u className={folga ? 'folga' : ''}>{folga ? '—' : d.meta}</u>}
+              </div>
+            );
+          })}
         </div>
       </Card>
 
@@ -461,15 +488,19 @@ function Academia({ s, a }) {
             ))}
           </>
         ) : temPlano && luz === 'vermelho' ? (
-          <div className="empty">
-            <b>Joelho no vermelho</b>
-            Hoje era pra ser só superior, mas o seu plano não tem uma rotina de
-            recuperação importada. Não vou te mandar treinar perna assim.
+          <div className="row alto" style={{ borderTop: 0 }}>
+            <div className="row-txt">
+              <b>Joelho no vermelho</b>
+              <span>Hoje era pra ser só superior, mas o seu plano não tem uma rotina de
+                recuperação importada. Não vou te mandar treinar perna assim.</span>
+            </div>
           </div>
         ) : temPlano ? (
-          <div className="empty">
-            <b>Folga hoje</b>
-            Nenhum treino marcado pra {D.DIAS_SEMANA[hojeIdx]} na divisão da semana.
+          <div className="row alto" style={{ borderTop: 0 }}>
+            <div className="row-txt">
+              <b>Folga hoje</b>
+              <span>Nenhum treino marcado pra {D.DIAS_SEMANA[hojeIdx]} na divisão da semana.</span>
+            </div>
           </div>
         ) : s.listas.exercicios.length === 0 ? (
           <Convite a={a} chave="exercicios" titulo="Exercícios" rotulo="Cadastrar exercício"
@@ -481,8 +512,13 @@ function Academia({ s, a }) {
           </div>
         ))}
 
-        <div className="sep" />
-        <HabitosDoPilar s={s} a={a} pilarId="gym" />
+        {/* o traço só existe se houver as duas metades pra separar */}
+        {D.habitosDoPilarNoDia(s, 'gym', D.iso()).length > 0 && (
+          <>
+            <div className="sep" />
+            <HabitosDoPilar s={s} a={a} pilarId="gym" />
+          </>
+        )}
       </Card>
 
       <Card>
@@ -492,7 +528,7 @@ function Academia({ s, a }) {
         </div>
         <div className="serie-linha" style={{ margin: '0 0 6px' }}>
           {[['peso', 'kg'], ['cintura', 'cm']].map(([campo, un]) => (
-            <div className="field compacto" key={campo}>
+            <div className="field medida" key={campo}>
               <input className="campo-input num" inputMode="decimal" aria-label={campo}
                 placeholder={campo === 'peso' ? 'peso' : 'cintura'}
                 value={D.extraDoDia(s)[campo] ?? ''}
@@ -563,7 +599,6 @@ function ExercicioDoDia({ s, a, treino, ex, faseId }) {
   const feito = !!extra[T.chaveFeito(treino, ex)];
   const log = T.logDe(extra, treino, ex);
   const anterior = T.ultimoLog(s.extra, treino, ex, D.iso());
-  const alvo = T.alvoDeReps(ex);
   const sobe = T.fechouAFaixa(ex, log);
   const titulo = ex.nome || ex.ref;
   const subs = (ex.subs || []).map(id => NOMES_OPENGYM[id] || id);
@@ -587,17 +622,17 @@ function ExercicioDoDia({ s, a, treino, ex, faseId }) {
 
         {ex.modo === 'reps' && (
           <div className="serie-linha">
-            <div className="field compacto">
+            <div className="field carga">
               <input className="campo-input num" inputMode="decimal" aria-label={`Carga em kg, ${titulo}`}
-                placeholder={anterior?.kg ? String(anterior.kg) : 'kg'} value={log.kg ?? ''}
+                placeholder={anterior?.kg ? String(anterior.kg) : '–'} value={log.kg ?? ''}
                 onChange={e => gravar({ kg: e.target.value.replace(/[^\d,.]/g, '').slice(0, 6) })} />
               <span>kg</span>
             </div>
             {Array.from({ length: ex.sets }, (_, i) => (
-              <div className="field compacto serie" key={i}>
+              <div className="field serie" key={i}>
                 <input className="campo-input num" inputMode="numeric"
                   aria-label={`Repetições da série ${i + 1}, ${titulo}`}
-                  placeholder={alvo ? String(alvo) : '–'} value={log.s?.[i] ?? ''}
+                  placeholder="–" value={log.s?.[i] ?? ''}
                   onChange={e => serie(i, e.target.value.replace(/\D/g, '').slice(0, 3))} />
               </div>
             ))}

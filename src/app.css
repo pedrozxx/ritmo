@@ -221,11 +221,19 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;-webki
 .row-txt{flex:1;min-width:0}
 .row-txt b{display:block;font-size:13.5px;font-weight:600}
 .row-txt span{font-size:11.5px;color:var(--ink-3)}
-.split{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
-.split div{text-align:center;padding:9px 2px;border-radius:12px;background:var(--surface-2);font-size:9.5px;font-weight:700;color:var(--ink-2);line-height:1.5}
-.split div b{display:block;font-size:9px;color:var(--ink-3);letter-spacing:.05em}
+/* minmax(0,1fr) e não 1fr: com `auto` a coluna não encolhe abaixo do conteúdo,
+   e uma palavra comprida esticava a célula dela e empurrava o domingo pra fora */
+.split{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.split div{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;
+  min-width:0;padding:8px 2px 9px;border-radius:12px;background:var(--surface-2);color:var(--ink-2);line-height:1.2}
+.split div b{font-size:9px;color:var(--ink-3);letter-spacing:.05em;font-weight:700}
+.split .split-emoji{font-style:normal;font-size:14px;line-height:1}
+.split u{text-decoration:none;font-size:12px;font-weight:700;font-family:'DM Mono',monospace;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.split u.folga{color:var(--ink-3);font-weight:600}
 .split div.now{background:var(--accent-fill);color:var(--on-accent)}
 .split div.now b{color:var(--on-accent);opacity:.7}
+.split div.now u.folga{color:var(--on-accent);opacity:.75}
 .check{width:26px;height:26px;border-radius:9px;border:1.5px solid var(--line-strong);display:grid;place-items:center;flex:0 0 auto;
   transition:background var(--t) var(--e),border-color var(--t) var(--e)}
 .check path{stroke-dasharray:18;stroke-dashoffset:18;transition:stroke-dashoffset var(--t) var(--e) 60ms;stroke:var(--on-accent)}
@@ -293,12 +301,16 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;-webki
 .teste-pernas .field{flex:1;margin:0}
 
 /* tira do strip de dias a cara de leitura: aqui dá pra tocar */
-/* carga e séries do exercício, numa linha que quebra no celular */
+/* Carga e séries numa linha só: largura fixa, senão o .field herda flex:1,
+   estica e quebra em duas fileiras de caixas enormes. */
 .serie-linha{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 2px}
-.serie-linha .field{margin:0;height:38px;padding:0 8px;min-width:58px}
-.serie-linha .field.serie{min-width:46px;padding:0 4px}
-.serie-linha .field input{text-align:center;font-size:13px}
-.serie-linha .field span{font-size:11px;color:var(--ink-3)}
+.serie-linha .field{flex:0 0 auto;margin:0;height:36px;padding:0 9px;gap:3px;border-radius:11px;max-width:none}
+.serie-linha .field.carga{width:76px}
+.serie-linha .field.serie{width:46px;padding:0 6px}
+.serie-linha .field.medida{width:112px;height:40px}
+.serie-linha .field input{flex:1;width:100%;text-align:center;font-size:13.5px;font-weight:600;letter-spacing:0}
+.serie-linha .field span{font-size:10.5px;color:var(--ink-3);font-family:Outfit,sans-serif}
+.serie-linha .field input::placeholder{opacity:.45}
 .crono{height:38px;padding:0 12px;border-radius:12px;background:var(--surface-2);color:var(--ink-2);
   font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .crono.rodando{background:var(--lilac-soft);color:var(--lilac)}
