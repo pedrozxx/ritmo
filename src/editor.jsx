@@ -1,7 +1,7 @@
 /* Folha de baixo genérica + o editor de listas.
    Um esquema em store.js vira formulário aqui — serve pra hábito, refeição,
    exercício, matéria, entrega, tarefa, categoria e meta. */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import * as D from './store.js';
 import { Ico, MOLA_CALMA, RAPIDO } from './ui.jsx';
@@ -9,6 +9,14 @@ import { Ico, MOLA_CALMA, RAPIDO } from './ui.jsx';
 /* A folha arrasta só pela alça, pra não brigar com a rolagem de dentro. */
 export function Folha({ onFechar, label, children }) {
   const arraste = useDragControls();
+  /* No iOS, teclado aberto dentro de um container `position:fixed` faz o
+     Safari rolar a janela pra mostrar o campo — e nem sempre desfaz quando o
+     teclado some. O app segue desenhado no lugar, mas o toque cai deslocado e
+     parece travado. Ao fechar a folha, tira o foco e volta a janela pro zero. */
+  useEffect(() => () => {
+    document.activeElement?.blur?.();
+    if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
+  }, []);
   return (
     <>
       <motion.button className="sheet-bd" aria-label="Fechar" onClick={onFechar}

@@ -75,6 +75,23 @@ export default function App() {
     return () => removeEventListener('keydown', h);
   }, []);
 
+  /* A janela nunca deveria rolar: quem rola é o .scroll lá dentro. Quando o
+     teclado do iOS rola ela mesmo assim, o app fica desenhado num lugar e
+     recebendo toque em outro. Isso aqui devolve pro zero sempre que a janela
+     muda de tamanho, que é quando o teclado abre e fecha. */
+  useEffect(() => {
+    const nivelar = () => { if (window.scrollY || window.scrollX) window.scrollTo(0, 0); };
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', nivelar);
+    vv?.addEventListener('scroll', nivelar);
+    addEventListener('orientationchange', nivelar);
+    return () => {
+      vv?.removeEventListener('resize', nivelar);
+      vv?.removeEventListener('scroll', nivelar);
+      removeEventListener('orientationchange', nivelar);
+    };
+  }, []);
+
   /* o empurrão: x manda em escala, canto e sombra do fundo */
   const x = useMotionValue(0);
   const scale = useTransform(x, [0, EMPURRA], [1, .88]);
