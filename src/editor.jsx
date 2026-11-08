@@ -46,17 +46,19 @@ function Campo({ campo, valor, erro, onMuda, s, filtro }) {
       </div>
     );
   }
-  if (campo.tipo === 'escolha' || campo.tipo === 'habito') {
-    const ops = campo.tipo === 'habito'
-      ? s.listas.habitos.map(h => [h.id, h.nome])
-      : campo.ops;
+  if (campo.tipo === 'escolha' || campo.tipo === 'habito' || campo.tipo === 'grupo') {
+    const ops = campo.tipo === 'habito' ? s.listas.habitos.map(h => [h.id, h.nome])
+      : campo.tipo === 'grupo' ? [['', 'Horário próprio'], ...D.gruposExistentes(s)]
+        : campo.ops;
     return (
       <div className="campo">
         <span className="label">{campo.rot}</span>
         {ops.length === 0
           ? <p className="err">Cadastre um hábito primeiro.</p>
           : (
-            <div className="chips">
+            /* o conjunto de chips é um grupo de escolha: sem rótulo, quem usa
+               leitor de tela ouve só os botões soltos, sem saber do que são */
+            <div className="chips" role="group" aria-label={campo.rot}>
               {ops.map(([v, t]) => (
                 <motion.button key={v} type="button" className="chip" aria-pressed={valor === v}
                   whileTap={{ scale: .94 }} onClick={() => onMuda(v)}>{t}</motion.button>

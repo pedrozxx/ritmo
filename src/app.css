@@ -224,16 +224,19 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;-webki
 /* minmax(0,1fr) e não 1fr: com `auto` a coluna não encolhe abaixo do conteúdo,
    e uma palavra comprida esticava a célula dela e empurrava o domingo pra fora */
 .split{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
-.split div{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;
+.split div, .split button{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;
   min-width:0;padding:8px 2px 9px;border-radius:12px;background:var(--surface-2);color:var(--ink-2);line-height:1.2}
-.split div b{font-size:9px;color:var(--ink-3);letter-spacing:.05em;font-weight:700}
+.split b{font-size:9px;color:var(--ink-3);letter-spacing:.05em;font-weight:700}
 .split .split-emoji{font-style:normal;font-size:14px;line-height:1}
 .split u{text-decoration:none;font-size:12px;font-weight:700;font-family:'DM Mono',monospace;
   max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .split u.folga{color:var(--ink-3);font-weight:600}
-.split div.now{background:var(--accent-fill);color:var(--on-accent)}
-.split div.now b{color:var(--on-accent);opacity:.7}
-.split div.now u.folga{color:var(--on-accent);opacity:.75}
+.split div, .split button{cursor:pointer;width:100%;text-align:center}
+.split .now{background:var(--accent-fill);color:var(--on-accent)}
+.split .now b{color:var(--on-accent);opacity:.7}
+.split .now u.folga{color:var(--on-accent);opacity:.75}
+/* hoje sem estar selecionado: só um contorno, pra não brigar com a seleção */
+.split .hoje:not(.now){box-shadow:inset 0 0 0 1.5px var(--lilac-3)}
 .check{width:26px;height:26px;border-radius:9px;border:1.5px solid var(--line-strong);display:grid;place-items:center;flex:0 0 auto;
   transition:background var(--t) var(--e),border-color var(--t) var(--e)}
 .check path{stroke-dasharray:18;stroke-dashoffset:18;transition:stroke-dashoffset var(--t) var(--e) 60ms;stroke:var(--on-accent)}

@@ -563,6 +563,98 @@ assert.equal(D.cofre({ id: 'x', alvo: 0 }, [], '2026-11-08').pct, 0, 'alvo zero 
 assert.equal(D.cofre({ id: 'c1', alvo: 500 }, txCofre, '2026-11-08').pct, 100, 'não passa de 100%');
 assert.equal(D.cofre({ id: 'c1', alvo: 3000, ate: '2026-10-01' }, txCofre, '2026-11-08').venceu, true);
 
+/* ---- quanto tenho agora ---- */
+const semBase = D.novoPerfil('Pedro');
+assert.equal(D.dinheiroAgora(semBase), null, 'sem conferência não inventa saldo');
+const comBase = {
+  ...semBase,
+  cfg: { ...semBase.cfg, saldoBase: 1200, saldoBaseEm: '2026-11-01' },
+  tx: [
+    { id: '1', data: '2026-10-28', cat: 'Lazer', v: -90 },   // antes da conferência
+    { id: '2', data: '2026-11-02', cat: 'Lazer', v: -45.5 },
+    { id: '3', data: '2026-11-05', cat: 'Renda', v: 300 },
+  ],
+};
+const dn = D.dinheiroAgora(comBase);
+assert.equal(dn.base, 1200);
+assert.equal(dn.mexido, 254.5, 'só o que veio depois da conferência mexe no saldo');
+assert.equal(dn.agora, 1454.5);
+assert.equal(D.dinheiroAgora({ ...comBase, cfg: { ...comBase.cfg, saldoBase: 0 } }).agora, 254.5,
+  'base zero é um valor legítimo, não ausência de base');
+
+/* ---- chamados de TI ---- */
+const comCh = { ...D.novoPerfil('Pedro'), extra: { [hoje]: { chamados: 7 } } };
+assert.equal(D.chamadosDoDia(comCh), 7);
+assert.equal(D.chamadosDoDia(D.novoPerfil('x')), 0);
+assert.equal(D.chamadosDaSemana(comCh).length, 7);
+assert.equal(D.chamadosDaSemana(comCh).reduce((t, d) => t + d.chamados, 0), 7);
+
+/* ---- horário de aula e o reagendamento da rotina ---- */
+assert.equal(D.emMinutos('19:10'), 19 * 60 + 10);
+assert.equal(D.emMinutos('19h10'), 19 * 60 + 10);
+assert.equal(D.emMinutos('7h'), 7 * 60);
+assert.equal(D.emMinutos('24:00'), null);
+assert.equal(D.emMinutos('noite'), null);
+assert.equal(D.emHora(19 * 60 + 10), '19:10');
+assert.equal(D.emHora(null), '');
+
+const MAT = [
+  { id: 'm1', nome: 'Sistemas Operacionais', dias: [0, 2], inicio: '19:10', fim: '22:30' },
+  { id: 'm2', nome: 'Sociologia', dias: [0], inicio: '18:00', fim: '19:00' },
+  { id: 'm3', nome: 'Sem horário', dias: [4] },
+];
+const jSeg = D.janelaDeAula(MAT, 0);
+assert.equal(jSeg.de, 18 * 60, 'a janela começa na primeira aula do dia');
+assert.equal(jSeg.ate, 22 * 60 + 30, 'e vai até o fim da última');
+assert.equal(jSeg.aulas.length, 2);
+assert.equal(jSeg.aulas[0].nome, 'Sociologia', 'as aulas saem em ordem de horário');
+assert.equal(D.janelaDeAula(MAT, 1), null, 'dia sem aula não tem janela');
+assert.equal(D.janelaDeAula(MAT, 4), null, 'matéria sem horário não cria janela');
+assert.equal(D.janelaDeAula([], 0), null);
+
+const comAula = {
+  ...D.novoPerfil('Pedro'), modo: 'aula',
+  listas: {
+    ...D.novoPerfil('Pedro').listas,
+    materias: MAT,
+    habitos: [
+      { id: 'h1', pilar: 'gym', nome: 'Treino', dias: [0, 2], hora: '19:45' },   // dentro da aula
+      { id: 'h2', pilar: 'gym', nome: 'Trocar roupa', dias: [0], hora: '19:30' },// dentro
+      { id: 'h3', pilar: 'diet', nome: 'Lanche', dias: [0], hora: '16:00' },     // antes, fica
+      { id: 'h4', pilar: 'fin', nome: 'Gastos', dias: [0], hora: '23:00' },      // depois, fica
+      { id: 'h5', pilar: 'fac', nome: 'Sem hora', dias: [0] },
+      { id: 'h6', pilar: 'gym', nome: 'Só férias', dias: [0], hora: '20:00', modo: 'ferias' },
+    ],
+  },
+};
+const conf = D.conflitosComAula(comAula);
+const idsConf = [...new Set(conf.map(c => c.habito.id))].sort();
+assert.deepEqual(idsConf, ['h1', 'h2'], 'só o que cai dentro da aula é movido');
+assert.ok(!conf.some(c => c.habito.id === 'h6'), 'hábito de outro modo de semana não entra');
+assert.equal(conf.find(c => c.habito.id === 'h2' && c.dia === 0).para, '22:45',
+  'o primeiro vai pro fim da aula mais a folga de 15 min');
+assert.equal(conf.find(c => c.habito.id === 'h1' && c.dia === 0).para, '23:00',
+  'o seguinte mantém os 15 min de distância que tinha do anterior');
+assert.equal(conf.filter(c => c.habito.id === 'h1').length, 2, 'treino conflita na segunda e na quarta');
+
+const ajustados = D.comHorariosAjustados(comAula.listas.habitos, conf);
+assert.equal(ajustados.find(h => h.id === 'h1').hora, '23:00');
+assert.equal(ajustados.find(h => h.id === 'h3').hora, '16:00', 'quem não conflita não é tocado');
+assert.equal(ajustados.find(h => h.id === 'h5').hora, undefined);
+assert.equal(ajustados.length, comAula.listas.habitos.length, 'não perde nem duplica hábito');
+assert.deepEqual(D.conflitosComAula(D.novoPerfil('x')), [], 'sem matéria não há conflito');
+
+/* grupos de refeição disponíveis pro cadastro de alternativa */
+const comRef = { listas: { refeicoes: [
+  { id: 'r1', grupo: 'lanche', nome: 'Lanche 1', hora: '16:00' },
+  { id: 'r2', grupo: 'lanche', nome: 'Lanche 2', hora: '16:00' },
+  { id: 'r3', grupo: 'almoco', nome: 'Almoço 1', hora: '12:00' },
+  { id: 'r4', nome: 'Avulsa' },
+] } };
+assert.deepEqual(D.gruposExistentes(comRef), [['lanche', 'Lanche · 16:00'], ['almoco', 'Almoço · 12:00']],
+  'um item por horário, sem o número da alternativa e sem os avulsos');
+assert.deepEqual(D.gruposExistentes({ listas: {} }), []);
+
 /* ---- avisos no calendário (.ics) ---- */
 assert.equal(ICS.horaIcs('08:00'), '080000');
 assert.equal(ICS.horaIcs('8h05'), '080500');

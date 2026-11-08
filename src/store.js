@@ -55,8 +55,10 @@ export const SCHEMAS = {
       ops: [['', 'Nas duas'], ['aula', 'Só com aula'], ['ferias', 'Só sem aula']] },
   ]},
   refeicoes: { um: 'refeição', campos: [
-    { k: 'nome', rot: 'Refeição', tipo: 'texto', obrig: true, dica: 'Almoço' },
-    { k: 'hora', rot: 'Horário', tipo: 'texto', dica: '12h30' },
+    { k: 'nome', rot: 'Refeição', tipo: 'texto', obrig: true, dica: 'Almoço 2' },
+    { k: 'hora', rot: 'Horário', tipo: 'texto', dica: '12:00' },
+    /* é isso que deixa ter Almoço 1 e 2 como opções do mesmo horário */
+    { k: 'grupo', rot: 'Alternativa de qual refeição', tipo: 'grupo' },
     { k: 'o', rot: 'O que tem', tipo: 'texto', dica: '180 g de frango, arroz e salada' },
     { k: 'prot', rot: 'Proteína em gramas', tipo: 'numero' },
     { k: 'kcal', rot: 'Calorias', tipo: 'numero' },
@@ -66,8 +68,11 @@ export const SCHEMAS = {
     { k: 'meta', rot: 'Séries e carga', tipo: 'texto', dica: '4 × 8 com 32 kg' },
   ]},
   materias: { um: 'matéria', campos: [
-    { k: 'nome', rot: 'Matéria', tipo: 'texto', obrig: true, dica: 'Cálculo III' },
-    { k: 'meta', rot: 'Detalhe', tipo: 'texto', dica: 'Segunda e quarta, 19h10' },
+    { k: 'nome', rot: 'Matéria', tipo: 'texto', obrig: true, dica: 'Sistemas Operacionais' },
+    { k: 'dias', rot: 'Em que dias tem aula', tipo: 'dias' },
+    { k: 'inicio', rot: 'Começa', tipo: 'texto', dica: '19:10' },
+    { k: 'fim', rot: 'Termina', tipo: 'texto', dica: '22:30' },
+    { k: 'meta', rot: 'Detalhe', tipo: 'texto', dica: 'Sala B204, professor Silva' },
     { k: 'nota', rot: 'Nota parcial', tipo: 'numero' },
   ]},
   entregas: { um: 'entrega', campos: [
@@ -356,6 +361,74 @@ export function metaAgua(s) {
   return { ml, garrafas: Math.max(1, Math.round(ml / s.cfg.mlGarrafa)), doPeso: true, peso: p.peso, mlKg };
 }
 
+/* os horários de refeição que já existem, pra escolher no cadastro */
+export const gruposExistentes = s =>
+  [...new Map((s.listas.refeicoes || [])
+    .filter(r => r.grupo)
+    .map(r => [r.grupo, `${String(r.nome).replace(/\s*\d+$/, '')}${r.hora ? ` · ${r.hora}` : ''}`]))
+    .entries()];
+
+/* ---- horários: aula e rotina no mesmo relógio ----
+   "19:10", "19h10" e "19h" viram minutos desde a meia-noite. Qualquer outra
+   coisa vira null, e quem não tem horário fica de fora das contas. */
+export function emMinutos(txt) {
+  const m = String(txt ?? '').trim().match(/^(\d{1,2})\s*[:h]\s*(\d{2})?$/i);
+  if (!m) return null;
+  const h = Number(m[1]), min = Number(m[2] ?? 0);
+  return h > 23 || min > 59 ? null : h * 60 + min;
+}
+export const emHora = min =>
+  min == null ? '' : `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+
+/* A janela de aula de um dia: do começo da primeira ao fim da última. */
+export function janelaDeAula(materias = [], diaIdx) {
+  const doDia = materias.filter(m => (m.dias || []).includes(diaIdx))
+    .map(m => ({ de: emMinutos(m.inicio), ate: emMinutos(m.fim), nome: m.nome }))
+    .filter(m => m.de != null && m.ate != null && m.ate > m.de);
+  if (!doDia.length) return null;
+  return {
+    de: Math.min(...doDia.map(m => m.de)),
+    ate: Math.max(...doDia.map(m => m.ate)),
+    aulas: doDia.sort((a, b) => a.de - b.de),
+  };
+}
+
+/* Quais hábitos caem dentro da aula, e pra que horário eles iriam.
+   Empurra pro fim da aula mais a folga, mantendo a ordem e o espaçamento
+   original entre eles — não embola todo mundo no mesmo minuto. */
+export const FOLGA_POS_AULA = 15;
+export function conflitosComAula(s, folga = FOLGA_POS_AULA) {
+  const fora = [];
+  DIAS_SEMANA.forEach((_, dia) => {
+    const j = janelaDeAula(s.listas.materias, dia);
+    if (!j) return;
+    const presos = (s.listas.habitos || [])
+      .filter(h => (h.dias || []).includes(dia) && (!h.modo || h.modo === (s.modo || 'aula')))
+      .map(h => ({ h, min: emMinutos(h.hora) }))
+      .filter(x => x.min != null && x.min >= j.de && x.min < j.ate)
+      .sort((a, b) => a.min - b.min);
+    if (!presos.length) return;
+    const base = j.ate + folga;
+    presos.forEach((x, i) => {
+      const novo = Math.min(23 * 60 + 59, base + (x.min - presos[0].min) + (i === 0 ? 0 : 0));
+      fora.push({ dia, habito: x.h, de: emHora(x.min), para: emHora(novo), janela: j });
+    });
+  });
+  return fora;
+}
+
+/* Aplica os conflitos: devolve a lista de hábitos com as horas novas.
+   Hábito que vale em mais de um dia com aula fica com o horário mais tarde,
+   que é o único que não conflita com nenhum deles. */
+export function comHorariosAjustados(habitos, conflitos) {
+  const novo = {};
+  conflitos.forEach(c => {
+    const atual = novo[c.habito.id];
+    if (!atual || emMinutos(c.para) > emMinutos(atual)) novo[c.habito.id] = c.para;
+  });
+  return habitos.map(h => (novo[h.id] ? { ...h, hora: novo[h.id] } : h));
+}
+
 /* ---- backup: o perfil inteiro num arquivo, pra não depender do navegador ---- */
 export const VERSAO_BACKUP = 1;
 export const paraBackup = (s, perfilId) => ({
@@ -407,6 +480,23 @@ export function progresso(meta, s) {
 }
 export const metasDaFase = (s, faseId) => s.listas.metas.filter(m => m.fase === faseId);
 
+/* ---- quanto você tem agora ----
+   A pessoa diz quanto tem no bolso/conta uma vez; a partir daí cada saída
+   desconta e cada entrada soma sozinha. Só conta lançamento do dia da
+   conferência pra frente, senão o histórico antigo descontaria duas vezes. */
+export function dinheiroAgora(s) {
+  const base = Number(s.cfg.saldoBase);
+  if (!Number.isFinite(base) || !s.cfg.saldoBaseEm) return null;
+  const desde = s.cfg.saldoBaseEm;
+  const mexido = cent(s.tx.filter(t => t.data >= desde).reduce((a, t) => a + t.v, 0));
+  return { base: cent(base), desde, mexido, agora: cent(base + mexido) };
+}
+
+/* ---- chamados de TI atendidos no dia ---- */
+export const chamadosDoDia = (s, ref = iso()) => Number(extraDoDia(s, ref).chamados) || 0;
+export const chamadosDaSemana = (s, ref = iso()) =>
+  semana(s, ref).map(d => ({ ...d, chamados: chamadosDoDia(s, d.k) }));
+
 /* ---- cofres: objetivos de guardar dinheiro ----
    Não existe caixa paralelo. Guardar é uma saída marcada com o cofre, tirar é
    uma entrada marcada com ele. O guardado é a soma invertida desses lançamentos,
@@ -451,6 +541,8 @@ export const CFG_PADRAO = {
   mlGarrafa: 500,
   mlPorKg: 45,        // o plano pede de 45 a 50 ml por quilo
   horasSemana: 30,    // meta de horas de estágio na semana
+  saldoBase: '',      // quanto a pessoa disse que tinha, e quando
+  saldoBaseEm: '',
 };
 /* Um perfil nasce vazio: só a estrutura, nenhum dado inventado.
    As categorias de gasto vêm preenchidas porque são genéricas — e dá pra editar. */

@@ -199,6 +199,36 @@ try {
   assert.ok(fin.includes('Toque num lançamento'), 'o lançamento devia ser editável');
   console.log('ok — backup, dia passado, carga, peso, creatina, joelho e cofres na tela');
 
+  // dinheiro atual, chamados, aula batendo na rotina e prévia de outro dia
+  const comSaldo = {
+    ...cheio,
+    cfg: { ...cheio.cfg, saldoBase: 1000, saldoBaseEm: D.maisDias(hoje, -2) },
+    tx: [{ id: 'x', data: hoje, desc: 'Mercado', cat: 'Alimentação', v: -150 }],
+  };
+  const fin2 = texto(renderToString(h(TELAS.financeiro, { s: comSaldo, a: acoes })));
+  assert.ok(fin2.includes('Quanto eu tenho agora'), 'Financeiro devia ter a caixa do saldo');
+  assert.ok(/850,00/.test(fin2), 'o gasto desconta do que a pessoa disse que tinha');
+
+  const est = texto(renderToString(h(TELAS.estagio, { s: cheio, a: acoes })));
+  assert.ok(est.includes('Chamados de TI'), 'Estágio devia contar chamados');
+
+  const comAulas = {
+    ...comRotina,
+    listas: {
+      ...comRotina.listas,
+      materias: [{ id: 'm1', nome: 'Sistemas Operacionais', dias: [0], inicio: '19:10', fim: '22:30' }],
+    },
+  };
+  const fac = texto(renderToString(h(TELAS.faculdade, { s: comAulas, a: acoes })));
+  assert.ok(fac.includes('A rotina esbarra na aula'), 'Faculdade devia avisar do conflito');
+  assert.ok(/19:45|19:30/.test(fac) && fac.includes('22:45'), 'e mostrar de onde pra onde vai');
+  const facLimpa = texto(renderToString(h(TELAS.faculdade, { s: comRotina, a: acoes })));
+  assert.ok(!facLimpa.includes('A rotina esbarra'), 'sem horário de aula não existe conflito');
+
+  const gym3 = texto(renderToString(h(TELAS.academia, { s: comPlano, a: acoes })));
+  assert.ok(gym3.includes('Toque num dia pra ver o treino dele'), 'a semana devia ser clicável');
+  console.log('ok — saldo atual, chamados, conflito com a aula e prévia por dia');
+
   // a dieta real: alimentos com grama, substituições e os três lanches num grupo só
   const dietaHtml = texto(renderToString(h(TELAS.dieta, { s: comDieta, a: acoes })));
   assert.ok(dietaHtml.includes('Peito de frango sem pele grelhado'), 'alimento devia aparecer');

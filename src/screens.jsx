@@ -424,8 +424,14 @@ function Academia({ s, a }) {
   const alvo = Number(metaTreino?.alvo) || 0;
   const hojeIdx = (new Date().getDay() + 6) % 7;
   const temPlano = (s.listas.treinos || []).length > 0;
-  const luz = J.luzDoDia(s, D.iso());
-  const treinoHoje = T.treinoDoDia(s.listas, D.iso(), luz);
+  /* dá pra olhar o treino de outro dia da semana sem sair da tela.
+     Registrar carga só vale de hoje pra trás: não dá pra ter feito amanhã. */
+  const [verDia, setVerDia] = useState(D.iso());
+  const dataDoIdx = i => D.maisDias(D.iso(), i - hojeIdx);
+  const ehHoje = verDia === D.iso();
+  const editavel = verDia <= D.iso();
+  const luz = J.luzDoDia(s, verDia);
+  const treinoHoje = T.treinoDoDia(s.listas, verDia, luz);
   const hist = D.pesagens(s);
   const ultima = hist[0] || null;
   const fase = D.ciclo(s).fase;
@@ -454,21 +460,33 @@ function Academia({ s, a }) {
           {s.listas.split.map((d, i) => {
             const t = (s.listas.treinos || []).find(x => x.id === d.treinoId);
             const folga = !d.meta || /^folga$/i.test(d.meta);
+            const data = dataDoIdx(i);
             return (
-              <div key={d.id} className={i === hojeIdx ? 'now' : ''} title={d.meta || 'folga'}>
+              <motion.button key={d.id} whileTap={{ scale: .94 }} aria-pressed={data === verDia}
+                className={`${i === hojeIdx ? 'hoje' : ''} ${data === verDia ? 'now' : ''}`}
+                title={d.meta || 'folga'} onClick={() => setVerDia(data)}>
                 <b>{d.nome}</b>
                 {t
                   ? <><i className="split-emoji">{t.emoji}</i><u>{t.id}</u></>
                   : <u className={folga ? 'folga' : ''}>{folga ? '—' : d.meta}</u>}
-              </div>
+              </motion.button>
             );
           })}
         </div>
+        <p className="nota" style={{ marginBottom: 0 }}>
+          {verDia === D.iso()
+            ? 'Toque num dia pra ver o treino dele.'
+            : `Vendo ${D.rotuloData(verDia).toLowerCase()}, ${D.dataCurta(verDia)}.`}
+        </p>
       </Card>
 
       <Card>
-        <Head titulo="Treino de hoje" chave={treinoHoje ? null : 'exercicios'} rotulo="Exercícios" a={a}
-          extra={temPlano ? <Pill t={`fase ${fase.nome}`} cor="lilac" /> : null} />
+        <Head titulo={ehHoje ? 'Treino de hoje' : `Treino de ${D.DIAS_SEMANA[D.diaIdx(verDia)]}`}
+          chave={treinoHoje ? null : 'exercicios'} rotulo="Exercícios" a={a}
+          extra={<>
+            {temPlano && <Pill t={`fase ${fase.nome}`} cor="lilac" />}
+            {!ehHoje && <button className="more" onClick={() => setVerDia(D.iso())}>Hoje</button>}
+          </>} />
 
         {treinoHoje ? (
           <>
@@ -479,12 +497,13 @@ function Academia({ s, a }) {
                   {luz === 'vermelho'
                     ? 'Joelho no vermelho: o treino de perna de hoje deu lugar à recuperação.'
                     : `${treinoHoje.ex.length} exercícios · prescrição da fase ${fase.nome}`}
+                  {!editavel && ' · só a prévia, marcar no dia'}
                 </span>
               </div>
             </div>
             {treinoHoje.ex.map(e => (
               <ExercicioDoDia key={`${treinoHoje.id}-${e.ord}`} s={s} a={a}
-                treino={treinoHoje} ex={e} faseId={fase.id} />
+                treino={treinoHoje} ex={e} faseId={fase.id} dia={verDia} editavel={editavel} />
             ))}
           </>
         ) : temPlano && luz === 'vermelho' ? (
@@ -499,7 +518,7 @@ function Academia({ s, a }) {
           <div className="row alto" style={{ borderTop: 0 }}>
             <div className="row-txt">
               <b>Folga hoje</b>
-              <span>Nenhum treino marcado pra {D.DIAS_SEMANA[hojeIdx]} na divisão da semana.</span>
+              <span>Nenhum treino marcado pra {D.DIAS_SEMANA[D.diaIdx(verDia)]} na divisão da semana.</span>
             </div>
           </div>
         ) : s.listas.exercicios.length === 0 ? (
@@ -594,16 +613,16 @@ function Cronometro({ segundos }) {
 
 /* Uma linha de exercício: marcar, anotar carga e repetições, ver o substituto
    e contar o descanso. A dupla progressão só acontece se houver onde anotar. */
-function ExercicioDoDia({ s, a, treino, ex, faseId }) {
-  const extra = D.extraDoDia(s);
+function ExercicioDoDia({ s, a, treino, ex, faseId, dia = D.iso(), editavel = true }) {
+  const extra = D.extraDoDia(s, dia);
   const feito = !!extra[T.chaveFeito(treino, ex)];
   const log = T.logDe(extra, treino, ex);
-  const anterior = T.ultimoLog(s.extra, treino, ex, D.iso());
+  const anterior = T.ultimoLog(s.extra, treino, ex, dia);
   const sobe = T.fechouAFaixa(ex, log);
   const titulo = ex.nome || ex.ref;
   const subs = (ex.subs || []).map(id => NOMES_OPENGYM[id] || id);
 
-  const gravar = novo => a.setExtra(T.chaveLog(treino, ex), { ...log, ...novo });
+  const gravar = novo => a.setExtra(T.chaveLog(treino, ex), { ...log, ...novo }, dia);
   const serie = (i, v) => {
     const sr = [...(log.s || [])];
     sr[i] = v === '' ? '' : Number(v);
@@ -612,7 +631,7 @@ function ExercicioDoDia({ s, a, treino, ex, faseId }) {
 
   return (
     <div className="row alto">
-      <Check on={feito} onClick={() => a.toggleExtra(T.chaveFeito(treino, ex))} label={titulo} />
+      <Check on={feito} onClick={() => editavel && a.toggleExtra(T.chaveFeito(treino, ex), dia)} label={titulo} />
       <div className="row-txt">
         <b>{titulo}</b>
         <span>
@@ -620,7 +639,7 @@ function ExercicioDoDia({ s, a, treino, ex, faseId }) {
           {ex.sgNome ? ` · supersérie ${ex.sgNome}` : ''}
         </span>
 
-        {ex.modo === 'reps' && (
+        {ex.modo === 'reps' && editavel && (
           <div className="serie-linha">
             <div className="field carga">
               <input className="campo-input num" inputMode="decimal" aria-label={`Carga em kg, ${titulo}`}
@@ -946,6 +965,8 @@ function Faculdade({ s, a }) {
   const comNota = materias.filter(m => m.nota !== '' && m.nota != null);
   const media = comNota.length ? comNota.reduce((t, m) => t + Number(m.nota), 0) / comNota.length : 0;
   const entregas = [...s.listas.entregas].sort((x, y) => (x.data || '').localeCompare(y.data || ''));
+  const conflitos = D.conflitosComAula(s);
+  const quantos = new Set(conflitos.map(c => c.habito.id)).size;
   return (
     <>
       <Card>
@@ -960,6 +981,37 @@ function Faculdade({ s, a }) {
         </div>
       </Card>
 
+      {/* Horário de aula mexe no resto da rotina. Mostro exatamente o que vai
+          mudar antes de mudar: reescrever dez horários sem avisar é o tipo de
+          coisa que parece defeito na primeira vez que acontece. */}
+      {conflitos.length > 0 && (
+        <Card>
+          <div className="card-head">
+            <h2>A rotina esbarra na aula</h2>
+            <Pill t={`${quantos} ${quantos === 1 ? 'hábito' : 'hábitos'}`} cor="warn" />
+          </div>
+          {[...new Map(conflitos.map(c => [c.habito.id, c])).values()].map(c => (
+            <div className="row" key={c.habito.id}>
+              <div className="row-txt">
+                <b>{c.habito.nome}</b>
+                <span>
+                  {D.DIAS_SEMANA[c.dia]} · aula até {D.emHora(c.janela.ate)}
+                </span>
+              </div>
+              <div className="tx-v">{c.de} → <b style={{ color: 'var(--lilac)' }}>{c.para}</b></div>
+            </div>
+          ))}
+          <motion.button className="btn-primary" style={{ marginTop: 12 }} whileTap={{ scale: .97 }}
+            onClick={() => a.importarRotina(D.comHorariosAjustados(s.listas.habitos, conflitos))}>
+            Ajustar {quantos === 1 ? 'o horário' : 'os horários'} pra depois da aula
+          </motion.button>
+          <p className="nota" style={{ marginBottom: 0 }}>
+            Cada um vai pro fim da última aula do dia mais {D.FOLGA_POS_AULA} min, mantendo
+            a distância que tinham entre si. Dá pra mudar qualquer um na mão depois.
+          </p>
+        </Card>
+      )}
+
       <Card>
         <Head titulo="Matérias" chave="materias" a={a} />
         {materias.length === 0
@@ -967,7 +1019,14 @@ function Faculdade({ s, a }) {
             texto="Suas matérias do semestre, com horário e nota parcial." />
           : materias.map(m => (
             <div className="row" key={m.id}>
-              <div className="row-txt"><b>{m.nome}</b><span>{m.meta || '—'}</span></div>
+              <div className="row-txt">
+                <b>{m.nome}</b>
+                <span>{[
+                  (m.dias || []).length ? m.dias.map(d => D.DIAS_SEMANA[d]).join(', ') : null,
+                  m.inicio && m.fim ? `${m.inicio} às ${m.fim}` : m.inicio || null,
+                  m.meta || null,
+                ].filter(Boolean).join(' · ') || 'sem horário cadastrado'}</span>
+              </div>
               {m.nota !== '' && m.nota != null && (
                 <span className={`pill num ${Number(m.nota) >= 7 ? 'ok' : 'warn'}`}>
                   {String(m.nota).replace('.', ',')}
@@ -1013,6 +1072,8 @@ function Estagio({ s, a }) {
   const hoje = D.horasDoDia(s);
   const maxDia = Math.max(1, ...sem.map(d => d.horas));
   const hhmm = n => String(n).replace('.', ',') + 'h';
+  const chamados = D.chamadosDoDia(s);
+  const semCh = D.chamadosDaSemana(s).reduce((t, d) => t + d.chamados, 0);
   return (
     <>
       <Card>
@@ -1040,6 +1101,28 @@ function Estagio({ s, a }) {
             <Ico n="mais" s={20} w={2.2} />
           </motion.button>
         </div>
+      </Card>
+
+      <Card>
+        <div className="card-head">
+          <h2>Chamados de TI</h2>
+          <span className="more num">{semCh} na semana</span>
+        </div>
+        <div className="stepper">
+          <motion.button whileTap={{ scale: .9 }} aria-label="Um chamado a menos"
+            onClick={() => a.setExtra('chamados', Math.max(0, chamados - 1))}>
+            <Ico n="menos" s={20} w={2.2} />
+          </motion.button>
+          <b className="num">{chamados}</b>
+          <motion.button whileTap={{ scale: .9 }} aria-label="Mais um chamado"
+            onClick={() => a.setExtra('chamados', chamados + 1)}>
+            <Ico n="mais" s={20} w={2.2} />
+          </motion.button>
+        </div>
+        <p className="nota" style={{ marginBottom: 0 }}>
+          Atendeu um chamado, toca no mais. No fim do mês você tem o número pra mostrar,
+          em vez de "ajudei bastante".
+        </p>
       </Card>
 
       <Card>
@@ -1088,8 +1171,55 @@ function Financeiro({ s, a }) {
   const cats = D.porCategoria(mes);
   const max = cats.length ? cats[0][1] : 1;
   const cofs = D.cofres(s);
+  const agora = D.dinheiroAgora(s);
+  const [conferindo, setConferindo] = useState(false);
+  const [valorBase, setValorBase] = useState('');
   return (
     <>
+      <Card>
+        <div className="card-head"><h2>Quanto eu tenho agora</h2></div>
+        {agora
+          ? (
+            <>
+              <div className="balance" style={{ marginBottom: 2 }}>
+                <div className="big" style={{ color: agora.agora < 0 ? 'var(--rose)' : undefined }}>
+                  {D.brl(agora.agora)}
+                </div>
+                <Pill t={agora.mexido >= 0 ? `+ ${D.brl(agora.mexido)}` : `− ${D.brl(agora.mexido)}`}
+                  cor={agora.mexido >= 0 ? 'ok' : 'warn'} />
+              </div>
+              <p className="nota" style={{ marginBottom: 10 }}>
+                Você conferiu {D.brl(agora.base)} em {D.dataCurta(agora.desde)}. Desde então os
+                lançamentos descontam e somam sozinhos — é só dizer no que gastou.
+              </p>
+              <ConfirmaDuasVezes rotulo="Conferir de novo o que tenho hoje"
+                confirma="Toque de novo e digite o valor" onOk={() => setConferindo(true)} />
+            </>
+          )
+          : <p className="nota" style={{ margin: '0 0 12px' }}>
+              Diga uma vez quanto você tem, e o app desconta cada gasto daí pra frente.
+            </p>}
+
+        {(conferindo || !agora) && (
+          <div className="serie-linha" style={{ marginTop: 4 }}>
+            <div className="field medida">
+              <span>R$</span>
+              <input className="campo-input num" inputMode="decimal" aria-label="Quanto tenho agora"
+                placeholder="0,00" value={valorBase}
+                onChange={e => setValorBase(e.target.value.replace(/[^\d,.]/g, '').slice(0, 10))} />
+            </div>
+            <motion.button className="btn-ghost" style={{ width: 'auto', padding: '0 16px', height: 40 }}
+              whileTap={{ scale: .96 }}
+              onClick={() => {
+                const v = D.valorDigitado(valorBase);
+                if (!Number.isFinite(v)) return;
+                a.setCampo('cfg', { ...s.cfg, saldoBase: v, saldoBaseEm: D.iso() });
+                setConferindo(false); setValorBase('');
+              }}>Gravar</motion.button>
+          </div>
+        )}
+      </Card>
+
       <Card>
         <div className="balance">
           <div><span className="label">Saldo do mês</span><div className="big">{D.brl(saldo)}</div></div>

@@ -103,8 +103,8 @@ export default function App() {
       });
     },
     /* marcações do dia que não são hábito: refeições, água, exercícios, horas */
-    toggleExtra: chave => setS(p => {
-      const k = D.iso(), e = { ...(p.extra[k] || {}) };
+    toggleExtra: (chave, k = D.iso()) => setS(p => {
+      const e = { ...(p.extra[k] || {}) };
       e[chave] = !e[chave];
       return { ...p, extra: { ...p.extra, [k]: e } };
     }),
