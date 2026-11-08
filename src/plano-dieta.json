@@ -49,6 +49,63 @@
       ]
     },
     {
+      "grupo": "almoco",
+      "nome": "Almoço 2",
+      "hora": "12:00",
+      "prot": null,
+      "kcal": null,
+      "itens": [
+        { "nome": "Peito de frango sem pele grelhado", "qtd": "1,3 filé médio ou 130 g", "subs": [
+          { "nome": "Patinho grelhado", "qtd": "1 filé pequeno (91,4 g)" },
+          { "nome": "Camarão sem casca refogado", "qtd": "5,2 colher servir cheia (206,8 g)" },
+          { "nome": "Filé de peixe grelhado/assado", "qtd": "1 filé médio (122,6 g)" },
+          { "nome": "Miolo de alcatra grelhada", "qtd": "0,8 filé pequeno (79,4 g)" },
+          { "nome": "Maminha grelhada", "qtd": "1,4 filé pequeno (132,3 g)" },
+          { "nome": "Contra-filé grelhado", "qtd": "1 filé médio (105,9 g)" },
+          { "nome": "Filé mignon grelhado", "qtd": "1 filé pequeno (92,7 g)" },
+          { "nome": "Coxão mole sem gordura cozido", "qtd": "1 filé pequeno (91,9 g)" },
+          { "nome": "Coxão duro sem gordura cozido", "qtd": "?? cortado no print" }
+        ], "duvida": "a lista de substitutos é a mesma do Almoço 1; não foi reaberta neste print" },
+        { "nome": "Arroz branco cozido", "qtd": "5,6 colheres de sopa cheias ou 140 g", "subs": [] },
+        { "nome": "Salada crua de alface e vegetais variados", "qtd": "à vontade", "subs": [] },
+        { "nome": "Azeite de oliva extravirgem", "qtd": "1 colher de chá ou 2 ml", "subs": [] },
+        { "nome": "Suco natural de maracujá", "qtd": "1 copo americano duplo ou 240 ml", "subs": [] }
+      ],
+      "duvida": "o print corta depois do suco; pode haver mais algum alimento"
+    },
+    {
+      "grupo": "jantar",
+      "nome": "Jantar 2",
+      "hora": "22:00",
+      "prot": null,
+      "kcal": null,
+      "obs": "Colocar a carne moída crua temperada e rechear (resto cortado no print).",
+      "itens": [
+        { "nome": "Patinho moído", "qtd": "100 g", "subs": [] },
+        { "nome": "Pão francês sem miolo", "qtd": "1 unidade", "duvida": "o app mostra \"ou 1 g\", igual ao lanche 3", "subs": [] },
+        { "nome": "Queijo muçarela light Tirolez", "qtd": "20 g", "subs": [] },
+        { "nome": "Tomate", "qtd": "2 fatias médias ou 30 g", "subs": [] },
+        { "nome": "Cebola branca", "qtd": "2 fatias médias ou 12 g", "subs": [] },
+        { "nome": "Alface", "qtd": "1 folha grande ou 15 g", "subs": [] }
+      ]
+    },
+    {
+      "grupo": "jantar",
+      "nome": "Jantar 3",
+      "hora": "22:00",
+      "prot": null,
+      "kcal": null,
+      "itens": [
+        { "nome": "Rap 10 integral", "qtd": "1 unidade ou 40 g", "subs": [] },
+        { "nome": "Molho de tomate só tomate elefante", "qtd": "20 g", "subs": [] },
+        { "nome": "Queijo muçarela light", "qtd": "1 fatia média ou 20 g", "subs": [] },
+        { "nome": "Frango desfiado", "qtd": "3 colheres de sopa cheias ou 60 g", "subs": [] },
+        { "nome": "Cebola branca", "qtd": "1 colher de sopa cheia, picada, ou 10 g", "subs": [] },
+        { "nome": "Tomate", "qtd": "3 fatias médias ou 45 g", "subs": [] }
+      ],
+      "duvida": "o print corta depois do tomate; pode haver mais algum alimento"
+    },
+    {
       "grupo": "lanche",
       "nome": "Lanche 1",
       "hora": "16:00",

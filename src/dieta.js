@@ -2,6 +2,7 @@
    O plano vem de fora (transcrição do Web Diet), nunca cravado aqui.
    Refeições do mesmo `grupo` são alternativas do mesmo horário: escolhe uma.
    Tudo função pura; testado em check.mjs. */
+import { emMinutos } from './store.js';
 
 /* Lê o plano-dieta.json. Macro em branco fica em branco: o Web Diet só dá o
    total do dia, e número de refeição estimado por mim não entra no app. */
@@ -32,22 +33,37 @@ export function importarPlanoDieta(json) {
   return { refeicoes, cfg, orientacoes: json.orientacoes || [] };
 }
 
+/* "Jantar 2" vem depois de "Jantar 1" e antes de "Jantar 10": comparar texto
+   puro colocaria o 10 no meio. Sem número no fim, vale a ordem de chegada. */
+const numeroDoFim = nome => {
+  const m = String(nome || '').match(/(\d+)\s*$/);
+  return m ? Number(m[1]) : null;
+};
+
 /* Junta as alternativas: um grupo por horário, com as opções dentro.
-   Mantém a ordem em que as refeições chegaram. */
+   Os grupos saem na ordem do relógio — o dia se lê de cima pra baixo. */
 export function gruposDeRefeicao(refeicoes = []) {
   const ordem = [], porGrupo = {};
-  refeicoes.forEach(r => {
+  refeicoes.forEach((r, i) => {
     const g = r.grupo || r.id;
-    if (!porGrupo[g]) { porGrupo[g] = { grupo: g, hora: r.hora, opcoes: [] }; ordem.push(g); }
-    porGrupo[g].opcoes.push(r);
+    if (!porGrupo[g]) { porGrupo[g] = { grupo: g, hora: r.hora, opcoes: [], chegou: i }; ordem.push(g); }
+    porGrupo[g].opcoes.push({ ...r, chegou: i });
   });
-  return ordem.map(g => {
-    const bloco = porGrupo[g];
+
+  return ordem.map(g => porGrupo[g]).map(bloco => {
+    bloco.opcoes.sort((a, b) => {
+      const na = numeroDoFim(a.nome), nb = numeroDoFim(b.nome);
+      return na != null && nb != null ? na - nb : a.chegou - b.chegou;
+    });
     /* uma opção só: o nome do grupo é o nome dela. Várias: tira o número do fim */
     bloco.nome = bloco.opcoes.length === 1
       ? bloco.opcoes[0].nome
       : bloco.opcoes[0].nome.replace(/\s*\d+$/, '');
     return bloco;
+  }).sort((a, b) => {
+    const ha = emMinutos(a.hora), hb = emMinutos(b.hora);
+    if (ha == null || hb == null) return a.chegou - b.chegou;   // sem horário, ordem de chegada
+    return ha - hb;
   });
 }
 

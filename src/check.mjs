@@ -354,6 +354,24 @@ assert.deepEqual(dieta.cfg, { proteina: 140, kcal: 1503 }, 'o total do dia vira 
 assert.deepEqual(Di.importarPlanoDieta({}).refeicoes, [], 'arquivo vazio não explode');
 assert.deepEqual(Di.importarPlanoDieta({}).cfg, {}, 'sem total do dia, não mexe na meta');
 
+/* ordem: o dia se lê no relógio, e as alternativas pelo número do nome */
+const fora = Di.gruposDeRefeicao([
+  { grupo: 'jantar', nome: 'Jantar 2', hora: '22:00', itens: [] },
+  { grupo: 'cafe', nome: 'Café', hora: '07:20', itens: [] },
+  { grupo: 'jantar', nome: 'Jantar 10', hora: '22:00', itens: [] },
+  { grupo: 'lanche', nome: 'Lanche', hora: '16:00', itens: [] },
+  { grupo: 'jantar', nome: 'Jantar 1', hora: '22:00', itens: [] },
+]);
+assert.deepEqual(fora.map(g => g.hora), ['07:20', '16:00', '22:00'],
+  'os horários saem na ordem do relógio, não na do arquivo');
+assert.deepEqual(fora.find(g => g.grupo === 'jantar').opcoes.map(o => o.nome),
+  ['Jantar 1', 'Jantar 2', 'Jantar 10'],
+  'as alternativas vão pelo número, e 10 não cai no meio como cairia por texto');
+const semHora = Di.gruposDeRefeicao([
+  { grupo: 'b', nome: 'B', itens: [] }, { grupo: 'a', nome: 'A', itens: [] },
+]);
+assert.deepEqual(semHora.map(g => g.grupo), ['b', 'a'], 'sem horário vale a ordem de chegada');
+
 const grupos = Di.gruposDeRefeicao(dieta.refeicoes);
 assert.equal(grupos.length, 2, 'os três lanches viram um grupo só');
 assert.equal(grupos[0].nome, 'Café da manhã', 'grupo de uma opção mantém o nome');
