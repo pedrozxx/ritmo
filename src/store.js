@@ -30,8 +30,25 @@ export const DIAS_SEMANA = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
    Um esquema por lista; o editor genérico monta o formulário a partir daqui. */
 export const SCHEMAS = {
   habitos: { um: 'hábito', campos: [
-    { k: 'nome', rot: 'O que é', tipo: 'texto', obrig: true, dica: 'Fui pra academia' },
-    { k: 'meta', rot: 'Detalhe', tipo: 'texto', dica: 'Push B às 18h' },
+    /* A dica segue o pilar de onde o cadastro foi aberto: sugerir "Fui pra
+       academia" em Faculdade não ajuda ninguém. `dicaPor` é lido pelo editor
+       a partir do filtro que abriu a folha. */
+    { k: 'nome', rot: 'O que é', tipo: 'texto', obrig: true, dica: 'O que você responde todo dia',
+      dicaPor: { pilar: {
+        gym: 'Fui pra academia',
+        diet: 'Não saí da dieta',
+        fac: 'Assisti as aulas do dia',
+        est: 'Bati as horas do estágio',
+        fin: 'Registrei os gastos do dia',
+      } } },
+    { k: 'meta', rot: 'Detalhe', tipo: 'texto', dica: 'Opcional, pra lembrar do combinado',
+      dicaPor: { pilar: {
+        gym: 'Treino B, 19h45',
+        diet: 'Sem besteira depois do jantar',
+        fac: 'Cálculo III, segunda e quarta',
+        est: '6 h por dia, das 13h às 19h',
+        fin: 'Lançar tudo no mesmo dia',
+      } } },
     { k: 'hora', rot: 'Horário', tipo: 'texto', dica: '18:00 — só pra exportar pro calendário' },
     { k: 'dias', rot: 'Em que dias', tipo: 'dias' },
     { k: 'modo', rot: 'Em qual semana', tipo: 'escolha', padrao: '',
@@ -91,6 +108,18 @@ export const SCHEMAS = {
 };
 export const camposVisiveis = (chave, v) =>
   SCHEMAS[chave].campos.filter(c => !c.so || c.so.includes(v.tipo));
+
+/* A dica do campo, já resolvida pelo filtro que abriu o cadastro.
+   Sem filtro ou sem correspondência, vale a dica genérica do campo. */
+export function dicaDe(campo, filtro) {
+  if (campo.dicaPor && filtro) {
+    for (const [chave, mapa] of Object.entries(campo.dicaPor)) {
+      const achada = mapa[filtro[chave]];
+      if (achada) return achada;
+    }
+  }
+  return campo.dica || '';
+}
 
 /* ---- datas ---- */
 export const iso = (d = new Date()) =>

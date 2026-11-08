@@ -202,6 +202,29 @@ assert.ok(!ks({ tipo: 'manual' }).includes('habitoId'));
 assert.ok(ks({ tipo: 'habito' }).includes('habitoId'));
 assert.ok(!ks({ tipo: 'saldo' }).includes('alvo'), 'saldo não precisa de alvo');
 assert.ok(ks({ tipo: 'dieta' }).includes('alvo'));
+/* a dica do formulário segue o pilar de onde o cadastro foi aberto */
+const campoNome = D.SCHEMAS.habitos.campos.find(c => c.k === 'nome');
+const campoMeta = D.SCHEMAS.habitos.campos.find(c => c.k === 'meta');
+assert.equal(D.dicaDe(campoNome, { pilar: 'fac' }), 'Assisti as aulas do dia');
+assert.equal(D.dicaDe(campoNome, { pilar: 'gym' }), 'Fui pra academia');
+assert.equal(D.dicaDe(campoNome, { pilar: 'fin' }), 'Registrei os gastos do dia');
+assert.equal(D.dicaDe(campoMeta, { pilar: 'est' }), '6 h por dia, das 13h às 19h');
+assert.equal(D.dicaDe(campoNome, null), 'O que você responde todo dia',
+  'sem filtro vale a dica genérica, nunca a de um pilar qualquer');
+assert.equal(D.dicaDe(campoNome, { pilar: 'inexistente' }), 'O que você responde todo dia');
+assert.equal(D.dicaDe(campoNome, { fase: 'base' }), 'O que você responde todo dia',
+  'filtro de outra chave não acha dica errada');
+assert.equal(D.dicaDe({ dica: 'só a genérica' }, { pilar: 'gym' }), 'só a genérica',
+  'campo sem dicaPor usa a dica de sempre');
+assert.equal(D.dicaDe({}, { pilar: 'gym' }), '');
+/* todo pilar tem dica própria: o buraco era justamente faltar uma */
+D.PILARES.forEach(p => {
+  assert.ok(campoNome.dicaPor.pilar[p.id], `pilar ${p.id} sem dica de nome`);
+  assert.ok(campoMeta.dicaPor.pilar[p.id], `pilar ${p.id} sem dica de detalhe`);
+  assert.notEqual(D.dicaDe(campoNome, { pilar: p.id }), campoNome.dica,
+    `a dica de ${p.id} não pode cair na genérica`);
+});
+
 for (const chave of Object.keys(D.SCHEMAS)) {
   assert.ok(D.SCHEMAS[chave].um, `esquema ${chave} sem nome no singular`);
   assert.ok(D.SCHEMAS[chave].campos.length > 0, `esquema ${chave} sem campo`);

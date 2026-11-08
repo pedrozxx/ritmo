@@ -25,7 +25,7 @@ export function Folha({ onFechar, label, children }) {
   );
 }
 
-function Campo({ campo, valor, erro, onMuda, s }) {
+function Campo({ campo, valor, erro, onMuda, s, filtro }) {
   const id = 'c-' + campo.k;
   /* dias da semana: 0 = SEG … 6 = DOM. Nenhum marcado quer dizer todo dia. */
   if (campo.tipo === 'dias') {
@@ -74,7 +74,7 @@ function Campo({ campo, valor, erro, onMuda, s }) {
         <input id={id} className="campo-input"
           type={campo.tipo === 'data' ? 'date' : 'text'}
           inputMode={campo.tipo === 'numero' ? 'decimal' : undefined}
-          placeholder={campo.dica || ''}
+          placeholder={D.dicaDe(campo, filtro)}
           value={valor ?? ''}
           onChange={e => onMuda(e.target.value)} />
       </div>
@@ -83,7 +83,7 @@ function Campo({ campo, valor, erro, onMuda, s }) {
   );
 }
 
-function Formulario({ s, chave, item, onSalvar, onVoltar }) {
+function Formulario({ s, chave, item, filtro, onSalvar, onVoltar }) {
   const schema = D.SCHEMAS[chave];
   const [v, setV] = useState(() => {
     const base = {};
@@ -124,7 +124,7 @@ function Formulario({ s, chave, item, onSalvar, onVoltar }) {
         <h2>{item?.id ? 'Editar' : 'Novo'} {schema.um}</h2>
       </div>
       {campos.map(c => (
-        <Campo key={c.k} campo={c} s={s} valor={v[c.k]} erro={erros[c.k]}
+        <Campo key={c.k} campo={c} s={s} filtro={filtro} valor={v[c.k]} erro={erros[c.k]}
           onMuda={x => { setV(p => ({ ...p, [c.k]: x })); setErros(p => ({ ...p, [c.k]: null })); }} />
       ))}
       <motion.button className="btn-primary" onClick={salvar} whileTap={{ scale: .97 }}>
@@ -145,7 +145,7 @@ export function Gerenciador({ s, chave, filtro, titulo, onFechar, onSalvar, onAp
     <Folha onFechar={onFechar} label={titulo}>
       <AnimatePresence mode="wait" initial={false}>
         {editando ? (
-          <Formulario key="form" s={s} chave={chave} item={editando}
+          <Formulario key="form" s={s} chave={chave} item={editando} filtro={filtro}
             onVoltar={() => setEditando(null)}
             onSalvar={item => { onSalvar(chave, { ...filtro, ...item }); setEditando(null); }} />
         ) : (
