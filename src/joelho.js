@@ -27,6 +27,20 @@ export const luzDoDia = (s, k) => {
   return typeof v === 'string' ? v : luzDo(v);
 };
 
+/* Histórico do semáforo: eu gravava um check por dia e só lia o de hoje.
+   Em reabilitação a tendência vale mais que o dia solto. */
+export function historico(s, n = 30, ref = iso()) {
+  const dias = [];
+  for (let i = 0; i < n; i++) {
+    const k = maisDias(ref, -i);
+    dias.push({ k, luz: luzDoDia(s, k) });
+  }
+  const conta = { verde: 0, amarelo: 0, vermelho: 0, sem: 0 };
+  dias.forEach(d => { conta[d.luz || 'sem']++; });
+  const comCheck = n - conta.sem;
+  return { dias, ...conta, comCheck, n, pctVerde: comCheck ? Math.round((conta.verde / comCheck) * 100) : null };
+}
+
 /** índice de simetria: a direita em % da esquerda */
 export const lsi = (direita, esquerda) =>
   Number(esquerda) > 0 ? Math.round((Number(direita) / Number(esquerda)) * 100) : null;

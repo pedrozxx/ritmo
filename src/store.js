@@ -65,6 +65,11 @@ export const SCHEMAS = {
   cats: { um: 'categoria', campos: [
     { k: 'nome', rot: 'Categoria', tipo: 'texto', obrig: true, dica: 'Alimentação' },
   ]},
+  cofres: { um: 'objetivo', campos: [
+    { k: 'nome', rot: 'Pra que é', tipo: 'texto', obrig: true, dica: 'Reserva de emergência' },
+    { k: 'alvo', rot: 'Quanto quer juntar', tipo: 'numero', obrig: true, dica: '3000' },
+    { k: 'ate', rot: 'Até quando', tipo: 'data' },
+  ]},
   split: { um: 'dia da semana', fixo: true, campos: [
     { k: 'meta', rot: 'Treino do dia', tipo: 'texto', dica: 'Push A, Pull B, folga…' },
   ]},
@@ -298,6 +303,48 @@ export function macrosDoDia(s, ref = iso()) {
   return { prot, kcal, feitas, total: s.listas.refeicoes.length, agua: ex.agua || 0 };
 }
 export const horasDoDia = (s, ref = iso()) => Number(extraDoDia(s, ref).horas) || 0;
+
+/* ---- peso e cintura: medida do dia, guardada junto com o resto do dia ---- */
+export const MLKG_PADRAO = 45;
+export const pesoDoDia = (s, ref = iso()) => Number(extraDoDia(s, ref).peso) || null;
+
+/* as pesagens registradas, da mais nova pra mais velha */
+export function pesagens(s) {
+  return Object.entries(s.extra || {})
+    .filter(([, e]) => Number(e.peso) > 0)
+    .map(([k, e]) => ({ k, peso: Number(e.peso), cintura: Number(e.cintura) || null }))
+    .sort((a, b) => (a.k < b.k ? 1 : -1));
+}
+export const ultimaPesagem = s => pesagens(s)[0] || null;
+
+/* Meta de água: com peso registrado ela sai de ml por quilo, como manda o
+   plano. Sem peso, cai no número fixo de garrafas que a pessoa configurou. */
+export function metaAgua(s) {
+  const p = ultimaPesagem(s);
+  const mlKg = Number(s.cfg.mlPorKg) || MLKG_PADRAO;
+  if (!p) return { ml: s.cfg.garrafas * s.cfg.mlGarrafa, garrafas: s.cfg.garrafas, doPeso: false };
+  const ml = Math.round(p.peso * mlKg);
+  return { ml, garrafas: Math.max(1, Math.round(ml / s.cfg.mlGarrafa)), doPeso: true, peso: p.peso, mlKg };
+}
+
+/* ---- backup: o perfil inteiro num arquivo, pra não depender do navegador ---- */
+export const VERSAO_BACKUP = 1;
+export const paraBackup = (s, perfilId) => ({
+  ritmo_backup: VERSAO_BACKUP, perfil: perfilId, nome: s.nome, exportado: iso(), estado: s,
+});
+/* devolve null em vez de lançar: arquivo errado não pode derrubar o app */
+export function deBackup(json) {
+  if (!json || json.ritmo_backup !== VERSAO_BACKUP || !json.estado) return null;
+  const base = novoPerfil(json.nome || json.estado.nome || 'Pedro');
+  const s = json.estado;
+  return {
+    ...base, ...s,
+    cfg: { ...base.cfg, ...s.cfg },
+    dias: s.dias || {}, extra: s.extra || {}, tx: s.tx || [],
+    joelho: s.joelho || {}, volta: s.volta || {},
+    listas: { ...base.listas, ...s.listas },
+  };
+}
 export function horasDaSemana(s, ref = iso()) {
   return semana(s, ref).map(d => ({ ...d, horas: horasDoDia(s, d.k) }));
 }
@@ -331,6 +378,25 @@ export function progresso(meta, s) {
 }
 export const metasDaFase = (s, faseId) => s.listas.metas.filter(m => m.fase === faseId);
 
+/* ---- cofres: objetivos de guardar dinheiro ----
+   Não existe caixa paralelo. Guardar é uma saída marcada com o cofre, tirar é
+   uma entrada marcada com ele. O guardado é a soma invertida desses lançamentos,
+   então o extrato e o cofre nunca podem discordar. */
+export const guardado = (tx, cofreId) =>
+  cent(tx.filter(t => t.cofre === cofreId).reduce((a, t) => a - t.v, 0));
+
+export function cofre(c, tx, ref = iso()) {
+  const alvo = Number(c.alvo) || 0;
+  const tem = guardado(tx, c.id);
+  const falta = cent(Math.max(0, alvo - tem));
+  const base = { ...c, alvo, tem, falta, pct: alvo ? Math.min(100, Math.round((tem / alvo) * 100)) : 0 };
+  if (!c.ate) return base;
+  const dias = diasEntre(ref, c.ate);
+  const meses = Math.max(1, Math.ceil(dias / 30));
+  return { ...base, dias, porMes: dias > 0 ? cent(falta / meses) : null, venceu: dias < 0 };
+}
+export const cofres = (s, ref = iso()) => (s.listas.cofres || []).map(c => cofre(c, s.tx, ref));
+
 /* ---- CRUD genérico das listas ---- */
 export const novoId = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
 
@@ -352,8 +418,9 @@ export const CFG_PADRAO = {
   metaDia: 70,        // % de "sim" pro dia contar na sequência
   proteina: 150,      // g por dia
   kcal: 2400,
-  garrafas: 6,        // copos/garrafas de água por dia
+  garrafas: 6,        // usado só enquanto não há pesagem registrada
   mlGarrafa: 500,
+  mlPorKg: 45,        // o plano pede de 45 a 50 ml por quilo
   horasSemana: 30,    // meta de horas de estágio na semana
 };
 /* Um perfil nasce vazio: só a estrutura, nenhum dado inventado.
@@ -375,6 +442,8 @@ export const novoPerfil = nome => ({
     habitos: [], refeicoes: [], exercicios: [], materias: [], entregas: [], tarefas: [], metas: [],
     treinos: [],   // rotinas importadas de fora; vazio até alguém importar
     testes: [],    // autotestes de simetria entre as pernas
+    cofres: [],    // objetivos de guardar dinheiro
+    orientacoes: [],  // recados do plano que não são refeição (creatina etc.)
     cats: ['Alimentação', 'Transporte', 'Academia', 'Faculdade', 'Lazer', 'Renda']
       .map(n => ({ id: novoId(), nome: n })),
     split: DIAS_SEMANA.map(d => ({ id: d.toLowerCase(), nome: d, meta: '', treinoId: '' })),

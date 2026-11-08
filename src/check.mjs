@@ -454,6 +454,92 @@ assert.equal(T.treinoDoDia(listasPlano, '2026-11-09', 'vermelho'), null,
   'plano sem rotina de recuperação devolve nada, nunca o treino de perna');
 assert.equal(T.recuperacao([{ id: 'z', nome: 'Dia de recuperação' }]).id, 'z', 'acha pelo nome também');
 
+/* ---- registro de carga e dupla progressão ---- */
+const exDouble = { ord: 0, modo: 'reps', sets: 3, reps: 15, repsMin: 12, prog: 'double' };
+const exLado = { ord: 1, modo: 'reps', sets: 3, reps: 24, lado: true, prog: 'double', repsMin: 20 };
+assert.equal(T.alvoDeReps(exDouble), 15);
+assert.equal(T.alvoDeReps(exLado), 12, 'unilateral: o alvo é por lado');
+assert.equal(T.alvoDeReps({ modo: 'tempo', sets: 3, sec: 30 }), null);
+assert.equal(T.fechouAFaixa(exDouble, { s: [15, 15, 15] }), true, 'topo da faixa nas três: sobe');
+assert.equal(T.fechouAFaixa(exDouble, { s: [15, 15, 13] }), false, 'uma série abaixo não sobe');
+assert.equal(T.fechouAFaixa(exDouble, { s: [15, 15] }), false, 'faltou série não sobe');
+assert.equal(T.fechouAFaixa({ ...exDouble, prog: 'off' }, { s: [15, 15, 15] }), false,
+  'exercício sem dupla progressão nunca manda subir');
+assert.equal(T.fechouAFaixa(exDouble, null), false);
+assert.equal(T.fechouAFaixa(exLado, { s: [12, 12, 12] }), true, 'por lado também fecha');
+
+const tA = { id: 'A' };
+assert.equal(T.chaveFeito(tA, exDouble), 'txA-0');
+assert.equal(T.chaveLog(tA, exDouble), 'tlA-0');
+assert.deepEqual(T.logDe({}, tA, exDouble), { kg: '', s: [] });
+assert.deepEqual(T.logDe({ 'tlA-0': { kg: 30, s: [12] } }, tA, exDouble), { kg: 30, s: [12] });
+
+const extraHist = {
+  '2026-11-01': { 'tlA-0': { kg: 28, s: [12, 12, 11] } },
+  '2026-11-05': { 'tlA-0': { kg: 30, s: [13, 12, 12] } },
+  '2026-11-06': { 'tlA-0': { kg: '', s: [] } },
+};
+assert.equal(T.ultimoLog(extraHist, tA, exDouble, '2026-11-08').kg, 30,
+  'pega o último registro de verdade, pulando o dia em branco');
+assert.equal(T.ultimoLog(extraHist, tA, exDouble, '2026-11-08').data, '2026-11-05');
+assert.equal(T.ultimoLog({}, tA, exDouble, '2026-11-08'), null);
+assert.equal(T.ultimoLog(extraHist, tA, exDouble, '2026-11-08', 1), null, 'não enxerga além da janela');
+
+/* ---- peso, água e backup ---- */
+const comPeso = { ...D.novoPerfil('Pedro'),
+  extra: { '2026-11-01': { peso: 80 }, '2026-11-08': { peso: 78.4, cintura: 86 } } };
+assert.equal(D.ultimaPesagem(comPeso).peso, 78.4, 'vale a pesagem mais nova');
+assert.equal(D.pesagens(comPeso).length, 2);
+assert.equal(D.pesagens(comPeso)[0].cintura, 86);
+assert.equal(D.pesoDoDia(comPeso, '2026-11-01'), 80);
+assert.equal(D.pesoDoDia(comPeso, '2026-11-02'), null);
+const agua = D.metaAgua(comPeso);
+assert.equal(agua.doPeso, true);
+assert.equal(agua.ml, Math.round(78.4 * 45), 'a meta sai de ml por quilo');
+assert.equal(agua.garrafas, Math.round(78.4 * 45 / 500));
+const semPeso = D.metaAgua(D.novoPerfil('Ana'));
+assert.equal(semPeso.doPeso, false, 'sem pesagem cai no número fixo');
+assert.equal(semPeso.ml, D.CFG_PADRAO.garrafas * D.CFG_PADRAO.mlGarrafa);
+
+let pBk = D.novoPerfil('Pedro');
+pBk = D.comItem(pBk, 'habitos', { pilar: 'gym', nome: 'Treino' });
+pBk.dias = { '2026-11-07': { x: 'sim' } };
+pBk.tx = [{ id: 't', data: '2026-11-07', desc: 'Almoço', cat: 'Alimentação', v: -14.5 }];
+const arquivo = D.paraBackup(pBk, 'pedro');
+assert.equal(arquivo.ritmo_backup, D.VERSAO_BACKUP);
+assert.equal(arquivo.perfil, 'pedro');
+const voltou = D.deBackup(JSON.parse(JSON.stringify(arquivo)));
+assert.equal(voltou.listas.habitos.length, 1, 'o backup volta inteiro');
+assert.deepEqual(voltou.dias, pBk.dias);
+assert.equal(voltou.tx[0].v, -14.5);
+assert.equal(voltou.cfg.metaDia, pBk.cfg.metaDia);
+assert.equal(D.deBackup(null), null);
+assert.equal(D.deBackup({}), null, 'arquivo sem a marca não é backup');
+assert.equal(D.deBackup({ ritmo_backup: 99, estado: {} }), null, 'versão desconhecida não entra');
+assert.ok(D.deBackup({ ritmo_backup: 1, estado: { nome: 'X' } }).listas.habitos,
+  'backup de versão antiga ganha as listas novas vazias, não quebra');
+
+/* ---- cofres: objetivos de guardar dinheiro ---- */
+const txCofre = [
+  { id: '1', data: '2026-11-01', cat: 'Poupança', v: -500, cofre: 'c1' },
+  { id: '2', data: '2026-11-05', cat: 'Poupança', v: -300, cofre: 'c1' },
+  { id: '3', data: '2026-11-06', cat: 'Poupança', v: 100, cofre: 'c1' },   // tirou
+  { id: '4', data: '2026-11-06', cat: 'Lazer', v: -50 },
+];
+assert.equal(D.guardado(txCofre, 'c1'), 700, 'guardar soma, tirar desconta');
+assert.equal(D.guardado(txCofre, 'inexistente'), 0);
+const c1 = D.cofre({ id: 'c1', nome: 'Reserva', alvo: 3000 }, txCofre, '2026-11-08');
+assert.equal(c1.tem, 700);
+assert.equal(c1.falta, 2300);
+assert.equal(c1.pct, 23);
+assert.equal(c1.porMes, undefined, 'sem prazo não calcula parcela');
+const c2 = D.cofre({ id: 'c1', nome: 'Reserva', alvo: 3000, ate: '2026-12-08' }, txCofre, '2026-11-08');
+assert.equal(c2.dias, 30);
+assert.equal(c2.porMes, 2300, 'um mês pela frente: precisa guardar o que falta');
+assert.equal(D.cofre({ id: 'x', alvo: 0 }, [], '2026-11-08').pct, 0, 'alvo zero não divide por zero');
+assert.equal(D.cofre({ id: 'c1', alvo: 500 }, txCofre, '2026-11-08').pct, 100, 'não passa de 100%');
+assert.equal(D.cofre({ id: 'c1', alvo: 3000, ate: '2026-10-01' }, txCofre, '2026-11-08').venceu, true);
+
 /* ---- avisos no calendário (.ics) ---- */
 assert.equal(ICS.horaIcs('08:00'), '080000');
 assert.equal(ICS.horaIcs('8h05'), '080500');

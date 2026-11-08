@@ -2,7 +2,7 @@
    O plano vem de fora (export do OpenGym), nunca cravado aqui.
    As fases do plano viram as fases do ciclo: Carga = Ritmo, Potência = Pico.
    Tudo função pura; as regras daqui são testadas em check.mjs, junto com o resto. */
-import { DIAS_SEMANA } from './store.js';
+import { DIAS_SEMANA, maisDias } from './store.js';
 
 /* store.js não exporta o emDia dele; uma linha repetida sai mais barata
    que mexer no arquivo pra exportar. Meio-dia de propósito, igual lá. */
@@ -112,6 +112,41 @@ export function comNomes(treinos, mapa) {
     ...t,
     ex: t.ex.map(e => (!e.nome && mapa[e.ref] ? { ...e, nome: mapa[e.ref] } : e)),
   }));
+}
+
+/* ---- registro de carga e repetições ----
+   Duas chaves por exercício no `extra` do dia: `tx…` é o feito/não feito que
+   já existia, `tl…` guarda { kg, s: [reps por série] }. */
+export const chaveFeito = (t, e) => `tx${t.id}-${e.ord}`;
+export const chaveLog = (t, e) => `tl${t.id}-${e.ord}`;
+export const logVazio = { kg: '', s: [] };
+export const logDe = (extra, t, e) => (extra || {})[chaveLog(t, e)] || logVazio;
+
+/* quantas repetições por série a fase pede (por lado, quando é unilateral) */
+export function alvoDeReps(ex) {
+  if (ex.modo !== 'reps' || ex.reps == null) return null;
+  return ex.lado && ex.reps % 2 === 0 ? ex.reps / 2 : ex.reps;
+}
+
+/* Dupla progressão: fechou o topo da faixa em todas as séries, sobe a carga.
+   É a regra que o plano usa e que sem registro de carga nunca dispara. */
+export function fechouAFaixa(ex, log) {
+  if (ex.prog !== 'double' || !log || !log.s || log.s.length < ex.sets) return false;
+  const alvo = alvoDeReps(ex);
+  if (!alvo) return false;
+  return log.s.slice(0, ex.sets).every(r => Number(r) >= alvo);
+}
+
+/* A última vez que esse exercício foi registrado, olhando pra trás.
+   Serve pra tela dizer "da última vez: 32 kg" em vez de te deixar lembrar. */
+export function ultimoLog(extra = {}, t, e, ref, dias = 120) {
+  const k = chaveLog(t, e);
+  for (let i = 1; i <= dias; i++) {
+    const dia = maisDias(ref, -i);
+    const log = (extra[dia] || {})[k];
+    if (log && (log.kg !== '' || (log.s || []).length)) return { ...log, data: dia };
+  }
+  return null;
 }
 
 /* a rotina de recuperação do plano (id REC no export do OpenGym) */

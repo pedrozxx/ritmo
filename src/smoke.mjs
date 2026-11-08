@@ -71,7 +71,7 @@ try {
   const comDieta = {
     ...cheio,
     cfg: { ...cheio.cfg, ...dieta.cfg },
-    listas: { ...cheio.listas, refeicoes: dieta.refeicoes },
+    listas: { ...cheio.listas, refeicoes: dieta.refeicoes, orientacoes: dieta.orientacoes },
   };
 
   /* rotina real importada, nos dois modos de semana */
@@ -164,6 +164,40 @@ try {
   const ajVazio = texto(renderToString(h(TELAS.ajustes, { s: vazio, a: acoes })));
   assert.ok(ajVazio.includes('Nenhum hábito com horário'), 'sem horário não há o que exportar');
   console.log('ok — Ajustes exporta os avisos pro calendário');
+
+  // o que foi acrescentado pra tapar os buracos que um usuário acharia
+  const aj = texto(renderToString(h(TELAS.ajustes, { s: comRotina, a: acoes })));
+  assert.ok(aj.includes('Baixar backup'), 'Ajustes devia oferecer backup');
+  assert.ok(aj.includes('Restaurar de um arquivo'), 'e restaurar');
+
+  const rot = texto(renderToString(h(TELAS.rotina, { s: comRotina, a: acoes })));
+  assert.ok(/Dia que você está respondendo|Hoje/.test(rot), 'Rotina devia deixar escolher o dia');
+
+  const gym = texto(renderToString(h(TELAS.academia, { s: comPlano, a: acoes })));
+  assert.ok(gym.includes('Peso e cintura'), 'Academia devia registrar peso');
+  const comCarga = {
+    ...comPlano,
+    extra: { [hoje]: { 'tlA-1': { kg: 30, s: [12, 12, 12] } }, [D.maisDias(hoje, -3)]: { 'tlA-1': { kg: 28, s: [12] } } },
+  };
+  const gymCarga = texto(renderToString(h(TELAS.academia, { s: comCarga, a: acoes })));
+  assert.ok(/Da última vez/.test(gymCarga), 'mostra a carga da última vez');
+
+  const dieta2 = texto(renderToString(h(TELAS.dieta, { s: comDieta, a: acoes })));
+  assert.ok(dieta2.includes('creatina'), 'a orientação da creatina tem que aparecer');
+
+  const joe = texto(renderToString(h(TELAS.joelho, { s: comPlano, a: acoes })));
+  assert.ok(joe.includes('Últimos 30 dias'), 'Joelho devia mostrar a tendência');
+
+  const comCofre = {
+    ...cheio,
+    listas: { ...cheio.listas, cofres: [{ id: 'c1', nome: 'Reserva', alvo: 3000 }] },
+    tx: [{ id: 'g1', data: hoje, desc: 'Guardei', cat: 'Renda', v: -700, cofre: 'c1' }],
+  };
+  const fin = texto(renderToString(h(TELAS.financeiro, { s: comCofre, a: acoes })));
+  assert.ok(fin.includes('Guardar dinheiro'), 'Financeiro devia ter objetivos');
+  assert.ok(fin.includes('Reserva') && /700,00/.test(fin), 'o cofre soma os lançamentos marcados');
+  assert.ok(fin.includes('Toque num lançamento'), 'o lançamento devia ser editável');
+  console.log('ok — backup, dia passado, carga, peso, creatina, joelho e cofres na tela');
 
   // a dieta real: alimentos com grama, substituições e os três lanches num grupo só
   const dietaHtml = texto(renderToString(h(TELAS.dieta, { s: comDieta, a: acoes })));

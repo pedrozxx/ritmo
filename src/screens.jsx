@@ -1,6 +1,6 @@
 /* As telas do Ritmo. Cada uma recebe o estado do perfil (s) e as ações (a).
    Nada aqui é dado fixo: tudo vem de s.listas, cadastrado por quem usa. */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as D from './store.js';
 /* direto, e não via store.js: é o treino.js que importa dele, reexportar faria ciclo */
@@ -46,11 +46,11 @@ const Semaninha = ({ dias }) => (
     })}
   </div>
 );
-const HabitosDoPilar = ({ s, a, pilarId }) => {
-  /* só os hábitos que valem hoje: o checklist do dia não mostra o que é de
+const HabitosDoPilar = ({ s, a, pilarId, dia = D.iso() }) => {
+  /* só os hábitos que valem no dia: o checklist não mostra o que é de
      outro dia da semana nem de outro modo */
-  const itens = D.habitosDoPilarNoDia(s, pilarId, D.iso());
-  const resp = s.dias[D.iso()] || {};
+  const itens = D.habitosDoPilarNoDia(s, pilarId, dia);
+  const resp = s.dias[dia] || {};
   if (!itens.length) {
     const temNoPilar = D.habitosDo(s, pilarId).length > 0;
     if (temNoPilar) return <Vazio titulo="Nada hoje" texto="Os hábitos deste pilar são de outros dias da semana." />;
@@ -59,10 +59,27 @@ const HabitosDoPilar = ({ s, a, pilarId }) => {
   }
   return (
     <div className="habits">
-      {itens.map(h => <Habito key={h.id} h={h} estado={resp[h.id]} onPick={v => a.marcar(h.id, v)} />)}
+      {itens.map(h => <Habito key={h.id} h={h} estado={resp[h.id]} onPick={v => a.marcar(h.id, v, dia)} />)}
     </div>
   );
 };
+
+/* Escolher o dia que se está respondendo. Existe porque esquecer de marcar
+   ontem quebrava a sequência pra sempre, sem chance de conserto. */
+const EscolheDia = ({ dia, onMuda, ref0 = D.iso() }) => (
+  <div className="week dias-voltar" role="group" aria-label="Dia que você está respondendo">
+    {Array.from({ length: 7 }, (_, i) => D.maisDias(ref0, i - 6)).map(k => {
+      const nome = D.DIAS_SEMANA[D.diaIdx(k)];
+      return (
+        <motion.button key={k} className={`day ${k === dia ? 'now' : ''}`} whileTap={{ scale: .94 }}
+          aria-pressed={k === dia} onClick={() => onMuda(k)}>
+          <b>{nome}</b>
+          <div className="dot" data-fill={k === dia ? 'full' : 'none'}>{Number(k.slice(-2))}</div>
+        </motion.button>
+      );
+    })}
+  </div>
+);
 
 /* ================= Hoje ================= */
 function Hoje({ s, a }) {
@@ -331,20 +348,28 @@ function Percurso({ s, a }) {
 
 /* ================= Rotina ================= */
 function Rotina({ s, a }) {
-  const resp = s.dias[D.iso()] || {};
+  const [dia, setDia] = useState(D.iso());
+  const resp = s.dias[dia] || {};
+  const hoje = dia === D.iso();
   return (
     <>
-      <Card style={{ background: 'transparent', boxShadow: 'none', padding: '2px 4px' }}>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--ink-3)' }}>
-          Responda <b style={{ color: 'var(--lilac)' }}>Sim</b> ou <b style={{ color: 'var(--rose)' }}>Não</b> em cada
-          item. O que fica sem resposta não conta como falha — só como pendente. Use “Editar” pra
-          criar, mudar ou apagar os hábitos de cada pilar.
+      <Card>
+        <div className="card-head">
+          <h2>{D.rotuloData(dia)}</h2>
+          {!hoje && <Pill t={D.dataCurta(dia)} cor="lilac" />}
+          {!hoje && <button className="more" onClick={() => setDia(D.iso())}>Voltar pra hoje</button>}
+        </div>
+        <EscolheDia dia={dia} onMuda={setDia} />
+        <p className="nota" style={{ marginBottom: 0 }}>
+          {hoje
+            ? 'Responda Sim ou Não em cada item. O que fica sem resposta não conta como falha, só como pendente.'
+            : 'Você está respondendo um dia que já passou. Serve pra consertar o que ficou em branco.'}
         </p>
       </Card>
       {D.PILARES.map(pl => {
-        /* o checklist é do dia: hábito de outro dia da semana não aparece aqui,
-           mas continua existindo e editável pelo "Editar" */
-        const itens = D.habitosDoPilarNoDia(s, pl.id, D.iso());
+        /* o checklist é do dia escolhido: hábito de outro dia da semana não
+           aparece aqui, mas continua existindo e editável pelo "Editar" */
+        const itens = D.habitosDoPilarNoDia(s, pl.id, dia);
         const noPilar = D.habitosDo(s, pl.id).length;
         return (
           <Card key={pl.id}>
@@ -365,7 +390,7 @@ function Rotina({ s, a }) {
                   rotulo={`Criar hábito de ${pl.nome}`} texto={`Nenhum hábito de ${pl.nome.toLowerCase()} ainda.`} />
               : (
                 <div className="habits">
-                  {itens.map(h => <Habito key={h.id} h={h} estado={resp[h.id]} onPick={v => a.marcar(h.id, v)} />)}
+                  {itens.map(h => <Habito key={h.id} h={h} estado={resp[h.id]} onPick={v => a.marcar(h.id, v, dia)} />)}
                 </div>
               )}
           </Card>
@@ -385,6 +410,8 @@ function Academia({ s, a }) {
   const temPlano = (s.listas.treinos || []).length > 0;
   const luz = J.luzDoDia(s, D.iso());
   const treinoHoje = T.treinoDoDia(s.listas, D.iso(), luz);
+  const hist = D.pesagens(s);
+  const ultima = hist[0] || null;
   const fase = D.ciclo(s).fase;
   const semanas = D.porSemana(s, 'gym');
   const maxSem = Math.max(1, ...semanas);
@@ -428,23 +455,10 @@ function Academia({ s, a }) {
                 </span>
               </div>
             </div>
-            {treinoHoje.ex.map(e => {
-              const chave = `tx${treinoHoje.id}-${e.ord}`;
-              const titulo = e.nome || e.ref;
-              return (
-                <div className="row alto" key={chave}>
-                  <Check on={ex[chave]} onClick={() => a.toggleExtra(chave)} label={titulo} />
-                  <div className="row-txt">
-                    <b>{titulo}</b>
-                    <span>
-                      {T.prescricao(e, fase.id)} · descanso {T.descansoTxt(e)}
-                      {e.sgNome ? ` · supersérie ${e.sgNome}` : ''}
-                    </span>
-                    {(e.nota || e.desc) && <span className="nota">{e.nota || e.desc}</span>}
-                  </div>
-                </div>
-              );
-            })}
+            {treinoHoje.ex.map(e => (
+              <ExercicioDoDia key={`${treinoHoje.id}-${e.ord}`} s={s} a={a}
+                treino={treinoHoje} ex={e} faseId={fase.id} />
+            ))}
           </>
         ) : temPlano && luz === 'vermelho' ? (
           <div className="empty">
@@ -471,6 +485,36 @@ function Academia({ s, a }) {
         <HabitosDoPilar s={s} a={a} pilarId="gym" />
       </Card>
 
+      <Card>
+        <div className="card-head">
+          <h2>Peso e cintura</h2>
+          {ultima && <Pill t={`${String(ultima.peso).replace('.', ',')} kg`} cor="lilac" />}
+        </div>
+        <div className="serie-linha" style={{ margin: '0 0 6px' }}>
+          {[['peso', 'kg'], ['cintura', 'cm']].map(([campo, un]) => (
+            <div className="field compacto" key={campo}>
+              <input className="campo-input num" inputMode="decimal" aria-label={campo}
+                placeholder={campo === 'peso' ? 'peso' : 'cintura'}
+                value={D.extraDoDia(s)[campo] ?? ''}
+                onChange={e => a.setExtra(campo, e.target.value.replace(/[^\d,.]/g, '').slice(0, 5))} />
+              <span>{un}</span>
+            </div>
+          ))}
+        </div>
+        <p className="nota" style={{ margin: 0 }}>
+          {!ultima
+            ? 'Sem pesagem ainda. O peso também define a meta de água, que hoje está num número fixo.'
+            : hist.length < 2
+              ? `Primeira pesagem em ${D.dataCurta(ultima.k)}. Na próxima o app mostra a variação.`
+              : (() => {
+                const dif = Math.round((hist[0].peso - hist[1].peso) * 10) / 10;
+                return `${D.dataCurta(hist[1].k)} → ${D.dataCurta(hist[0].k)}: `
+                  + `${dif === 0 ? 'sem mudança' : `${dif > 0 ? '+' : ''}${String(dif).replace('.', ',')} kg`}`
+                  + ` · ${hist.length} pesagens no total`;
+              })()}
+        </p>
+      </Card>
+
       {treinos > 0 && (
         <Card>
           <div className="card-head"><h2>Treinos por semana</h2><span className="more num">últimas 7</span></div>
@@ -489,6 +533,100 @@ function Academia({ s, a }) {
   );
 }
 
+/* Conta o descanso entre séries. Existe porque o plano prescreve 60, 75 e 90 s
+   e até agora isso era só um texto na tela. */
+function Cronometro({ segundos }) {
+  const [resta, setResta] = useState(null);
+  useEffect(() => {
+    if (resta === null) return undefined;
+    if (resta <= 0) { const t = setTimeout(() => setResta(null), 1400); return () => clearTimeout(t); }
+    const t = setTimeout(() => setResta(r => r - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resta]);
+
+  if (!segundos) return null;
+  const mm = resta === null ? null : `${Math.floor(resta / 60)}:${String(resta % 60).padStart(2, '0')}`;
+  return (
+    <motion.button className={`crono ${resta !== null ? 'rodando' : ''} ${resta === 0 ? 'fim' : ''}`}
+      whileTap={{ scale: .94 }}
+      aria-label={resta === null ? `Começar descanso de ${segundos} segundos` : 'Parar o descanso'}
+      onClick={() => setResta(resta === null ? segundos : null)}>
+      {resta === null ? `⏱ ${segundos} s` : resta === 0 ? 'vai!' : mm}
+    </motion.button>
+  );
+}
+
+/* Uma linha de exercício: marcar, anotar carga e repetições, ver o substituto
+   e contar o descanso. A dupla progressão só acontece se houver onde anotar. */
+function ExercicioDoDia({ s, a, treino, ex, faseId }) {
+  const extra = D.extraDoDia(s);
+  const feito = !!extra[T.chaveFeito(treino, ex)];
+  const log = T.logDe(extra, treino, ex);
+  const anterior = T.ultimoLog(s.extra, treino, ex, D.iso());
+  const alvo = T.alvoDeReps(ex);
+  const sobe = T.fechouAFaixa(ex, log);
+  const titulo = ex.nome || ex.ref;
+  const subs = (ex.subs || []).map(id => NOMES_OPENGYM[id] || id);
+
+  const gravar = novo => a.setExtra(T.chaveLog(treino, ex), { ...log, ...novo });
+  const serie = (i, v) => {
+    const sr = [...(log.s || [])];
+    sr[i] = v === '' ? '' : Number(v);
+    gravar({ s: sr });
+  };
+
+  return (
+    <div className="row alto">
+      <Check on={feito} onClick={() => a.toggleExtra(T.chaveFeito(treino, ex))} label={titulo} />
+      <div className="row-txt">
+        <b>{titulo}</b>
+        <span>
+          {T.prescricao(ex, faseId)} · descanso {T.descansoTxt(ex)}
+          {ex.sgNome ? ` · supersérie ${ex.sgNome}` : ''}
+        </span>
+
+        {ex.modo === 'reps' && (
+          <div className="serie-linha">
+            <div className="field compacto">
+              <input className="campo-input num" inputMode="decimal" aria-label={`Carga em kg, ${titulo}`}
+                placeholder={anterior?.kg ? String(anterior.kg) : 'kg'} value={log.kg ?? ''}
+                onChange={e => gravar({ kg: e.target.value.replace(/[^\d,.]/g, '').slice(0, 6) })} />
+              <span>kg</span>
+            </div>
+            {Array.from({ length: ex.sets }, (_, i) => (
+              <div className="field compacto serie" key={i}>
+                <input className="campo-input num" inputMode="numeric"
+                  aria-label={`Repetições da série ${i + 1}, ${titulo}`}
+                  placeholder={alvo ? String(alvo) : '–'} value={log.s?.[i] ?? ''}
+                  onChange={e => serie(i, e.target.value.replace(/\D/g, '').slice(0, 3))} />
+              </div>
+            ))}
+            <Cronometro segundos={ex.descanso} />
+          </div>
+        )}
+        {ex.modo !== 'reps' && ex.descanso ? (
+          <div className="serie-linha"><Cronometro segundos={ex.descanso} /></div>
+        ) : null}
+
+        {sobe && <Pill t="fechou a faixa — sobe a carga" cor="ok" />}
+        {anterior && (
+          <span className="nota" style={{ margin: '4px 0 0' }}>
+            Da última vez, em {D.dataCurta(anterior.data)}: {anterior.kg ? `${anterior.kg} kg` : 'sem carga'}
+            {anterior.s?.length ? ` · ${anterior.s.filter(x => x !== '').join(' · ')}` : ''}
+          </span>
+        )}
+        {subs.length > 0 && (
+          <details className="subs-ex">
+            <summary>{subs.length === 1 ? 'substituto' : `${subs.length} substitutos`}</summary>
+            <span>{subs.join(' · ')}</span>
+          </details>
+        )}
+        {(ex.nota || ex.desc) && <span className="nota">{ex.nota || ex.desc}</span>}
+      </div>
+    </div>
+  );
+}
+
 /* ================= Joelho =================
    Sem cor nova: verde usa o tom de entrada, vermelho o mesmo rosa do "não",
    e o amarelo vira lilás — a disciplina de cor do app continua de pé. */
@@ -504,6 +642,7 @@ function Joelho({ s, a }) {
   const ultimo = J.ultimoTeste(testes);
   const v = J.voltaAoCampo(s.volta, testes);
   const prox = ultimo ? D.maisDias(ultimo.data, J.DIAS_RETESTE) : null;
+  const h30 = J.historico(s, 30, hoje);
   const muda = (k, valor) =>
     a.setJoelho({ dor: 0, inchaco: 0, falseou: false, ...check, ok: true, [k]: valor });
 
@@ -542,6 +681,28 @@ function Joelho({ s, a }) {
               onClick={() => muda('inchaco', n)} whileTap={{ scale: .94 }}>{t}</motion.button>
           ))}
         </div>
+      </Card>
+
+      <Card>
+        <div className="card-head">
+          <h2>Últimos 30 dias</h2>
+          {h30.comCheck > 0 && <Pill t={`${h30.pctVerde}% verde`} cor={h30.pctVerde >= 70 ? 'ok' : 'neutral'} />}
+        </div>
+        {h30.comCheck === 0
+          ? <p className="nota" style={{ margin: 0 }}>Nenhum check ainda. A partir do primeiro, a tendência aparece aqui.</p>
+          : (
+            <>
+              <div className="luzes">
+                {[...h30.dias].reverse().map(d => (
+                  <i key={d.k} data-luz={d.luz || 'sem'} title={`${D.dataCurta(d.k)}: ${d.luz || 'sem check'}`} />
+                ))}
+              </div>
+              <p className="nota" style={{ marginBottom: 0 }}>
+                {h30.verde} verdes · {h30.amarelo} amarelos · {h30.vermelho} vermelhos
+                {h30.sem > 0 && ` · ${h30.sem} dias sem check`}
+              </p>
+            </>
+          )}
       </Card>
 
       <Card>
@@ -645,8 +806,10 @@ function Dieta({ s, a }) {
   /* plano sem macro por refeição (o Web Diet só dá o total do dia): a tela
      conta refeição em vez de fingir que sabe os gramas de cada uma */
   const temMacro = s.listas.refeicoes.some(r => Number(r.prot) > 0 || Number(r.kcal) > 0);
+  /* a meta de água sai do peso quando há pesagem, como manda o plano */
+  const ag = D.metaAgua(s);
   const litros = (m.agua * s.cfg.mlGarrafa / 1000).toFixed(1).replace('.', ',');
-  const alvoLitros = (s.cfg.garrafas * s.cfg.mlGarrafa / 1000).toFixed(1).replace('.', ',');
+  const alvoLitros = (ag.ml / 1000).toFixed(1).replace('.', ',');
   const ad = D.aderenciaPilar(s, 'diet');
   return (
     <>
@@ -688,10 +851,24 @@ function Dieta({ s, a }) {
           : grupos.map(g => <RefeicaoGrupo key={g.grupo} g={g} ex={ex} a={a} />)}
       </Card>
 
+      {(s.listas.orientacoes || []).length > 0 && (
+        <Card>
+          <div className="card-head"><h2>Orientações do plano</h2></div>
+          {s.listas.orientacoes.map((o, i) => (
+            <div className="row alto" key={i}>
+              <div className="row-txt">
+                <b>{[o.titulo, o.hora].filter(Boolean).join(' · ')}</b>
+                <span className="nota" style={{ margin: '3px 0 0' }}>{o.texto}</span>
+              </div>
+            </div>
+          ))}
+        </Card>
+      )}
+
       <Card>
         <div className="card-head"><h2>Água</h2><span className="more num">{litros} L de {alvoLitros} L</span></div>
-        <div className="aguas" style={{ gridTemplateColumns: `repeat(${s.cfg.garrafas}, 1fr)` }}>
-          {Array.from({ length: s.cfg.garrafas }, (_, i) => (
+        <div className="aguas" style={{ gridTemplateColumns: `repeat(${ag.garrafas}, 1fr)` }}>
+          {Array.from({ length: ag.garrafas }, (_, i) => (
             <motion.button key={i} className="garrafa" whileTap={{ scale: .92 }}
               aria-pressed={i < m.agua} aria-label={`${i + 1}ª garrafa de ${s.cfg.mlGarrafa} ml`}
               onClick={() => a.setExtra('agua', m.agua === i + 1 ? i : i + 1)}>
@@ -700,8 +877,13 @@ function Dieta({ s, a }) {
           ))}
         </div>
         <span className="label" style={{ display: 'block', marginTop: 10 }}>
-          {s.cfg.garrafas} de {s.cfg.mlGarrafa} ml · toque pra encher, toque de novo pra desfazer
+          {ag.garrafas} de {s.cfg.mlGarrafa} ml · toque pra encher, toque de novo pra desfazer
         </span>
+        <p className="nota" style={{ marginBottom: 0 }}>
+          {ag.doPeso
+            ? `Calculado dos seus ${String(ag.peso).replace('.', ',')} kg a ${ag.mlKg} ml por quilo, como o plano pede. Pese de novo e a meta acompanha.`
+            : 'Número fixo dos Ajustes. Registre seu peso na Academia e a meta passa a sair de ml por quilo.'}
+        </p>
       </Card>
 
       <Card>
@@ -870,6 +1052,7 @@ function Financeiro({ s, a }) {
   const { entradas, saidas, saldo } = D.caixa(mes);
   const cats = D.porCategoria(mes);
   const max = cats.length ? cats[0][1] : 1;
+  const cofs = D.cofres(s);
   return (
     <>
       <Card>
@@ -905,11 +1088,50 @@ function Financeiro({ s, a }) {
         </div>
         {mes.length === 0
           ? <Vazio titulo="Nenhum lançamento" texto="Toque em Lançamento pra registrar o primeiro gasto ou recebimento." />
-          : mes.map(t => (
-            <div className="tx" key={t.id}>
-              <div className={`tx-ic ${t.v > 0 ? 'pos' : 'neg'}`}><Ico n={t.v > 0 ? 'sobe' : 'desce'} s={16} /></div>
-              <div className="tx-txt"><b>{t.desc}</b><span>{D.rotuloData(t.data)} · {t.cat}</span></div>
-              <div className={`tx-v ${t.v > 0 ? 'pos' : 'neg'}`}>{t.v > 0 ? '+ ' : '− '}{D.brl(t.v)}</div>
+          : mes.map(t => {
+            const cf = t.cofre && (s.listas.cofres || []).find(c => c.id === t.cofre);
+            return (
+              /* o lançamento abre pra editar: errar o valor não pode ser definitivo */
+              <motion.button className="tx" key={t.id} whileTap={{ scale: .98 }}
+                onClick={() => a.editarTx(t)} aria-label={`Editar ${t.desc}`}>
+                <div className={`tx-ic ${t.v > 0 ? 'pos' : 'neg'}`}><Ico n={t.v > 0 ? 'sobe' : 'desce'} s={16} /></div>
+                <div className="tx-txt">
+                  <b>{t.desc}</b>
+                  <span>{D.rotuloData(t.data)} · {t.cat}{cf ? ` · ${cf.nome}` : ''}</span>
+                </div>
+                <div className={`tx-v ${t.v > 0 ? 'pos' : 'neg'}`}>{t.v > 0 ? '+ ' : '− '}{D.brl(t.v)}</div>
+              </motion.button>
+            );
+          })}
+        {mes.length > 0 && <p className="nota" style={{ marginBottom: 0 }}>Toque num lançamento pra corrigir ou apagar.</p>}
+      </Card>
+
+      <Card>
+        <Head titulo="Guardar dinheiro" chave="cofres" rotulo="Objetivos" a={a}
+          extra={cofs.length > 0 ? <Pill t={D.brl(cofs.reduce((x, c) => x + c.tem, 0))} cor="ok" /> : null} />
+        {cofs.length === 0
+          ? <Convite a={a} chave="cofres" titulo="Objetivos" rotulo="Criar um objetivo"
+            texto="Defina pra que você está juntando e quanto. Depois é só marcar o lançamento como guardado." />
+          : cofs.map(c => (
+            <div className="row alto" key={c.id}>
+              <div className="row-txt">
+                <b>{c.nome}</b>
+                <span>
+                  {D.brl(c.tem)} de {D.brl(c.alvo)}
+                  {c.falta > 0 ? ` · faltam ${D.brl(c.falta)}` : ' · objetivo batido'}
+                </span>
+                <Barra pct={c.pct} />
+                {c.ate && (
+                  <span className="nota" style={{ margin: '5px 0 0' }}>
+                    {c.venceu
+                      ? `O prazo era ${D.dataCurta(c.ate)}.`
+                      : c.falta === 0
+                        ? `Fechou antes de ${D.dataCurta(c.ate)}.`
+                        : `Até ${D.dataCurta(c.ate)} (${D.faltam(c.ate).txt}): ${D.brl(c.porMes)} por mês.`}
+                  </span>
+                )}
+              </div>
+              <div className="tx-v pos">{c.pct}%</div>
             </div>
           ))}
       </Card>
@@ -1043,6 +1265,11 @@ function Ajustes({ s, a }) {
       </Card>
 
       <Card>
+        <div className="card-head"><h2>Backup</h2></div>
+        <Backup s={s} a={a} />
+      </Card>
+
+      <Card>
         <div className="card-head"><h2>Avisos no calendário</h2></div>
         <BaixarAvisos s={s} />
       </Card>
@@ -1076,6 +1303,64 @@ function Ajustes({ s, a }) {
         <ConfirmaDuasVezes rotulo="Apagar tudo deste perfil"
           confirma="Toque de novo pra apagar tudo" onOk={a.apagarPerfil} />
       </Card>
+    </>
+  );
+}
+
+/* Backup do perfil inteiro num arquivo. Sem isto, tudo mora no armazenamento
+   do navegador e some junto com ele. */
+function Backup({ s, a }) {
+  const perfil = D.perfilEscolhido() || 'pedro';
+  const [msg, setMsg] = useState('');
+  const [ruim, setRuim] = useState(false);
+  const [pronto, setPronto] = useState(null);
+
+  const baixar = () => {
+    const txt = JSON.stringify(D.paraBackup(s, perfil), null, 1);
+    const url = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ritmo-${s.nome.toLowerCase()}-${D.iso()}.json`;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setRuim(false);
+    setMsg(`Backup de ${D.dataCurta(D.iso())} baixado. Guarde fora do aparelho.`);
+  };
+
+  const ler = async arquivo => {
+    if (!arquivo) return;
+    try {
+      const estado = D.deBackup(JSON.parse(await arquivo.text()));
+      if (!estado) { setRuim(true); setMsg('Isso não é um backup do Ritmo.'); setPronto(null); return; }
+      setRuim(false); setPronto(estado);
+      setMsg(`Backup de ${estado.nome}: ${estado.listas.habitos.length} hábitos, `
+        + `${Object.keys(estado.dias).length} dias e ${estado.tx.length} lançamentos. Confirme pra substituir.`);
+    } catch {
+      setRuim(true); setPronto(null); setMsg('Não deu pra ler o arquivo.');
+    }
+  };
+
+  return (
+    <>
+      <p className="nota" style={{ margin: '0 0 12px' }}>
+        Tudo que você marca vive só neste navegador. Limpar os dados do site, trocar de
+        aparelho ou o iPhone liberar espaço, e acabou. Baixe de vez em quando.
+      </p>
+      <motion.button className="btn-primary" style={{ width: '100%' }}
+        onClick={baixar} whileTap={{ scale: .97 }}>Baixar backup de {s.nome}</motion.button>
+
+      <label className="btn-ghost" style={{ display: "block", textAlign: "center", cursor: "pointer", marginTop: 10, lineHeight: "46px" }}>
+        Restaurar de um arquivo
+        <input type="file" accept=".json,application/json" style={{ display: 'none' }}
+          onChange={e => { ler(e.target.files[0]); e.target.value = ''; }} />
+      </label>
+
+      {msg && <p className={ruim ? 'err' : 'nota'} role="status" style={{ marginTop: 10, marginBottom: 0 }}>{msg}</p>}
+      {pronto && (
+        <ConfirmaDuasVezes rotulo="Substituir este perfil pelo backup"
+          confirma="Toque de novo: o que está aqui agora será perdido"
+          onOk={() => { a.restaurar(pronto); setPronto(null); setMsg('Perfil restaurado.'); }} />
+      )}
     </>
   );
 }
@@ -1185,9 +1470,9 @@ function ImportarPlano({ a }) {
 
       /* dieta: o arquivo traz refeições */
       if (Array.isArray(json.refeicoes)) {
-        const { refeicoes, cfg } = Di.importarPlanoDieta(json);
+        const { refeicoes, cfg, orientacoes } = Di.importarPlanoDieta(json);
         if (!refeicoes.length) { setRuim(true); setMsg('Esse arquivo não tem refeição nenhuma.'); return; }
-        a.importarDieta(refeicoes, cfg);
+        a.importarDieta(refeicoes, cfg, orientacoes);
         const g = Di.gruposDeRefeicao(refeicoes).length;
         setRuim(false);
         setMsg(`${refeicoes.length} refeições em ${g} ${g === 1 ? 'horário' : 'horários'}.`
@@ -1237,8 +1522,8 @@ function ImportarPlano({ a }) {
         onOk={() => {
           const { treinos, split } = T.importarOpenGym(PLANO_TREINO);
           a.importarPlano(T.comNomes(treinos, NOMES_OPENGYM), split);
-          const { refeicoes, cfg } = Di.importarPlanoDieta(PLANO_DIETA);
-          a.importarDieta(refeicoes, cfg);
+          const { refeicoes, cfg, orientacoes } = Di.importarPlanoDieta(PLANO_DIETA);
+          a.importarDieta(refeicoes, cfg, orientacoes);
           a.importarRotina(PLANO_ROTINA.habitos.map(hb => ({ ...hb, id: D.novoId() })));
           setRuim(false);
           setMsg(`${treinos.length} rotinas de treino, ${refeicoes.length} refeições e ${PLANO_ROTINA.habitos.length} hábitos.`);

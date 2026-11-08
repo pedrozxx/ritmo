@@ -58,7 +58,7 @@ export default function App() {
   const [s, setS] = useState(() => (D.perfilEscolhido() ? D.carregarPerfil(D.perfilEscolhido()) : null));
   const [tela, setTela] = useState('hoje');
   const [menu, setMenu] = useState(false);
-  const [folha, setFolha] = useState(false);
+  const [folha, setFolha] = useState(null);
   const [gestor, setGestor] = useState(null);
   const [pulo, setPulo] = useState(0);
 
@@ -70,7 +70,7 @@ export default function App() {
     else el.dataset.theme = t === 'escuro' ? 'dark' : 'light';
   }, [s]);
   useEffect(() => {
-    const h = e => { if (e.key === 'Escape') { setFolha(false); setGestor(null); setMenu(false); } };
+    const h = e => { if (e.key === 'Escape') { setFolha(null); setGestor(null); setMenu(false); } };
     addEventListener('keydown', h);
     return () => removeEventListener('keydown', h);
   }, []);
@@ -88,15 +88,16 @@ export default function App() {
     setS(D.carregarPerfil(id));
     setTela('hoje');
     setMenu(false);
-    setFolha(false);
+    setFolha(null);
     setGestor(null);
   };
 
   const a = useMemo(() => ({
-    marcar: (id, v) => {
-      if (v === 'sim') setPulo(p => p + 1);
+    /* `k` deixa consertar um dia passado; sem ele, é hoje */
+    marcar: (id, v, k = D.iso()) => {
+      if (v === 'sim' && k === D.iso()) setPulo(p => p + 1);
       setS(p => {
-        const k = D.iso(), dia = { ...(p.dias[k] || {}) };
+        const dia = { ...(p.dias[k] || {}) };
         if (v === null) delete dia[id]; else dia[id] = v;
         return { ...p, dias: { ...p.dias, [k]: dia } };
       });
@@ -107,12 +108,16 @@ export default function App() {
       e[chave] = !e[chave];
       return { ...p, extra: { ...p.extra, [k]: e } };
     }),
-    setExtra: (chave, valor) => setS(p => {
-      const k = D.iso();
-      return { ...p, extra: { ...p.extra, [k]: { ...(p.extra[k] || {}), [chave]: valor } } };
-    }),
+    setExtra: (chave, valor, k = D.iso()) =>
+      setS(p => ({ ...p, extra: { ...p.extra, [k]: { ...(p.extra[k] || {}), [chave]: valor } } })),
     go: t => { setTela(t); setMenu(false); },
     addTx: tx => setS(p => ({ ...p, tx: [tx, ...p.tx] })),
+    /* editar e apagar lançamento: errar o valor não pode ser definitivo */
+    editTx: tx => setS(p => ({ ...p, tx: p.tx.map(t => (t.id === tx.id ? { ...t, ...tx } : t)) })),
+    delTx: id => setS(p => ({ ...p, tx: p.tx.filter(t => t.id !== id) })),
+    editarTx: t => setFolha(t),
+    /* troca o perfil inteiro por um backup lido de arquivo */
+    restaurar: estado => setS(estado),
     setCampo: (k, v) => setS(p => ({ ...p, [k]: v })),
     setCfg: (k, v) => setS(p => ({ ...p, cfg: { ...p.cfg, [k]: v === '' ? 0 : Number(v) } })),
     reiniciarCiclo: () => setS(p => ({ ...p, cicloInicio: D.iso() })),
@@ -121,8 +126,8 @@ export default function App() {
       ...p, listas: { ...p.listas, treinos, split },
     })),
     /* dieta de fora: troca as refeições e puxa o total do dia pras metas */
-    importarDieta: (refeicoes, cfg) => setS(p => ({
-      ...p, cfg: { ...p.cfg, ...cfg }, listas: { ...p.listas, refeicoes },
+    importarDieta: (refeicoes, cfg, orientacoes = []) => setS(p => ({
+      ...p, cfg: { ...p.cfg, ...cfg }, listas: { ...p.listas, refeicoes, orientacoes },
     })),
     /* rotina de fora: troca os hábitos, mantendo o histórico dos dias */
     importarRotina: habitos => setS(p => ({ ...p, listas: { ...p.listas, habitos } })),
@@ -216,7 +221,7 @@ export default function App() {
 
             <AnimatePresence>
               {tela === 'financeiro' && !folha && !gestor && (
-                <motion.button className="fab" onClick={() => setFolha(true)}
+                <motion.button className="fab" onClick={() => setFolha({})}
                   initial={{ opacity: 0, scale: .8, y: 22 }} animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: .8, y: 22 }} transition={MOLA_CALMA} whileTap={{ scale: .94 }}>
                   <Ico n="mais" s={18} w={2.2} /> Lançamento
@@ -226,9 +231,14 @@ export default function App() {
 
             <AnimatePresence>
               {folha && (
-                <Lancamento key="lanc" cats={s.listas.cats}
-                  onFechar={() => setFolha(false)}
-                  onSalvar={tx => { a.addTx(tx); setFolha(false); }} />
+                /* Quem decide entre criar e editar é a folha que abriu, não o
+                   objeto salvo: o salvo sempre tem id, porque o formulário gera
+                   um quando falta — e por isso todo lançamento novo virava uma
+                   edição de algo que não existia, e sumia. */
+                <Lancamento key="lanc" cats={s.listas.cats} cofres={s.listas.cofres || []} tx={folha}
+                  onFechar={() => setFolha(null)}
+                  onSalvar={novo => { (folha.id ? a.editTx : a.addTx)(novo); setFolha(null); }}
+                  onApagar={id => { a.delTx(id); setFolha(null); }} />
               )}
               {gestor && (
                 <Gerenciador key="gestor" s={s} {...gestor}
@@ -272,12 +282,15 @@ function Escolha({ onEscolher }) {
 }
 
 /* ---- folha de baixo: novo lançamento ---- */
-function Lancamento({ cats, onFechar, onSalvar }) {
-  const [tipo, setTipo] = useState('out');
-  const [cat, setCat] = useState(cats[0] ? cats[0].nome : '');
-  const [valor, setValor] = useState('');
-  const [desc, setDesc] = useState('');
+function Lancamento({ cats, cofres = [], tx = {}, onFechar, onSalvar, onApagar }) {
+  const editando = !!tx.id;
+  const [tipo, setTipo] = useState(tx.v > 0 ? 'in' : 'out');
+  const [cat, setCat] = useState(tx.cat || (cats[0] ? cats[0].nome : ''));
+  const [valor, setValor] = useState(tx.v ? String(Math.abs(tx.v)).replace('.', ',') : '');
+  const [desc, setDesc] = useState(tx.desc || '');
+  const [cofre, setCofre] = useState(tx.cofre || '');
   const [erro, setErro] = useState('');
+  const [armado, setArmado] = useState(false);
   const tremor = useAnimation();
 
   const salvar = () => {
@@ -288,16 +301,17 @@ function Lancamento({ cats, onFechar, onSalvar }) {
       return;
     }
     onSalvar({
-      id: D.novoId(),
-      data: D.iso(),
+      id: tx.id || D.novoId(),
+      data: tx.data || D.iso(),
       desc: desc.trim() || (tipo === 'in' ? 'Entrada' : cat || 'Gasto'),
       cat: cat || 'Sem categoria',
       v: tipo === 'in' ? v : -v,
+      ...(cofre ? { cofre } : { cofre: undefined }),
     });
   };
 
   return (
-    <Folha onFechar={onFechar} label="Novo lançamento">
+    <Folha onFechar={onFechar} label={editando ? 'Editar lançamento' : 'Novo lançamento'}>
       <div className="seg" role="group" aria-label="Tipo de lançamento">
         {[['out', 'Gastei'], ['in', 'Recebi']].map(([k, t]) => (
           <button key={k} aria-pressed={tipo === k} onClick={() => setTipo(k)}>
@@ -328,9 +342,33 @@ function Lancamento({ cats, onFechar, onSalvar }) {
         ))}
       </div>
 
+      {cofres.length > 0 && (
+        <>
+          <span className="label" style={{ display: 'block', margin: '4px 0 0' }}>
+            {tipo === 'out' ? 'Guardar num objetivo' : 'Tirar de um objetivo'}
+          </span>
+          <div className="chips" role="group" aria-label="Objetivo">
+            <motion.button className="chip" aria-pressed={cofre === ''}
+              onClick={() => setCofre('')} whileTap={{ scale: .94 }}>Nenhum</motion.button>
+            {cofres.map(c => (
+              <motion.button key={c.id} className="chip" aria-pressed={cofre === c.id}
+                onClick={() => setCofre(c.id)} whileTap={{ scale: .94 }}>{c.nome}</motion.button>
+            ))}
+          </div>
+        </>
+      )}
+
       <motion.button className="btn-primary" onClick={salvar} whileTap={{ scale: .97 }}>
-        Salvar lançamento
+        {editando ? 'Salvar alteração' : 'Salvar lançamento'}
       </motion.button>
+
+      {editando && (
+        <motion.button className={`btn-ghost ${armado ? 'danger' : ''}`} style={{ marginTop: 10 }}
+          whileTap={{ scale: .97 }}
+          onClick={() => (armado ? onApagar(tx.id) : setArmado(true))}>
+          {armado ? 'Toque de novo pra apagar' : 'Apagar lançamento'}
+        </motion.button>
+      )}
     </Folha>
   );
 }
