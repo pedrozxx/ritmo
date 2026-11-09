@@ -32,7 +32,7 @@ const subtitulo = (tela, s) => {
   return {
     hoje: D.dataLonga(),
     percurso: `Dia ${c.dia} de ${D.CICLO_DIAS} · fase ${c.fase.nome}`,
-    rotina: `Acorda ${D.emHora(D.acordaMin(s))} · dorme ${D.emHora(D.dormeMin(s))}`,
+    rotina: `Hoje acorda ${D.emHora(D.acordaMin(s, D.iso()))} · dorme ${D.emHora(D.dormeMin(s, D.iso()))}`,
     progresso: (() => {
       const r = D.resumoDias(s, 7);
       if (!D.primeiroDia(s)) return 'sem histórico ainda';
@@ -144,7 +144,16 @@ export default function App() {
     setCampo: (k, v) => setS(p => ({ ...p, [k]: v })),
     /* hora de acordar é texto (07:00), não número como o resto do cfg */
     setAcorda: v => { if (D.emMinutos(v) != null) setS(p => ({ ...p, cfg: { ...p.cfg, acorda: D.emHora(D.emMinutos(v)) } })); },
-    setCfg: (k, v) => setS(p => ({ ...p, cfg: { ...p.cfg, [k]: v === '' ? 0 : Number(v) } })),
+    /* hora própria de um dia da semana; null volta pra de todo dia */
+    setAcordaDia: (dia, v) => setS(p => {
+      const m = { ...(p.acordaDia || {}) };
+      if (v == null) delete m[dia];
+      else if (D.emMinutos(v) != null) m[dia] = D.emHora(D.emMinutos(v));
+      else return p;
+      return { ...p, acordaDia: m };
+    }),
+    /* campo opcional apagado fica em branco (usa o padrão), não vira zero */
+    setCfg: (k, v) => setS(p => ({ ...p, cfg: { ...p.cfg, [k]: v === '' ? (D.CFG_OPCIONAL.includes(k) ? '' : 0) : Number(v) } })),
     reiniciarCiclo: () => setS(p => ({ ...p, cicloInicio: D.iso() })),
     /* plano de treino vindo de fora; substitui as rotinas e a divisão da semana */
     importarPlano: (treinos, split) => setS(p => ({
@@ -162,7 +171,7 @@ export default function App() {
     setJoelho: check => setS(p => ({ ...p, joelho: { ...p.joelho, [D.iso()]: check } })),
     setVolta: (k, v) => setS(p => ({ ...p, volta: { ...p.volta, [k]: v } })),
     addTeste: t => setS(p => D.comItem(p, 'testes', { ...t, data: D.iso() })),
-    apagarPerfil: () => setS(p => D.novoPerfil(p.nome)),
+    apagarPerfil: () => setS(p => D.perfilApagado(D.perfilEscolhido(), p.nome)),
     gerir: (chave, filtro, titulo) => setGestor({ chave, filtro, titulo }),
   }), []);
 

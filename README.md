@@ -93,6 +93,14 @@ a hora que caberia. O trecho do estágio até a faculdade tem campo próprio (em
 usa o de casa): com ele a Rotina marca "chega atrasado" quando a chegada passa do começo
 da aula, e "em cima da aula" quando o almoço na faculdade não cabe 20 min antes dela.
 
+A hora de acordar vale todo dia, mas um dia da semana pode ter a sua (botão embaixo
+do Acorda, na Rotina). Dormir sai do acordar do dia seguinte: se terça acorda mais
+cedo, quem dorme mais cedo é a segunda.
+
+Refeição conta no % do dia e no anel da Dieta como um item do pilar: marcada vale
+"Sim", e Almoço 1 ou 2 resolvem o mesmo almoço. Ela só entra na conta a partir do
+primeiro dia em que alguma refeição foi marcada, pra não reescrever o histórico de antes.
+
 O **Progresso** mostra a média dos últimos 7 e 30 dias, a sequência atual e a melhor,
 as últimas 12 semanas dia a dia, a média por semana, cada pilar e cada hábito do mais
 furado pro mais firme. O histórico começa no primeiro dia com resposta: antes disso

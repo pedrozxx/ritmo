@@ -186,7 +186,20 @@ export const valeNoDia = (h, s, k) => horaDoHabito(h, s, diaIdx(k)) !== null;
    Aula só existe na semana com aula. Estágio vale nas duas. */
 export const ANTES_PADRAO = 30;
 export const NOME_BLOCO = { aula: 'aula', estagio: 'estágio' };
+/* Cache: blocosDoDia roda pra cada hábito em cada dia que a sequência e o
+   histórico percorrem. Todo setS cria listas novas, então matérias, turnos
+   e modo iguais por identidade dão o mesmo resultado. */
+const cacheBlocos = new WeakMap();
 export function blocosDoDia(s, dia) {
+  const modo = s.modo || 'aula', { materias, turnos } = s.listas;
+  let c = cacheBlocos.get(s.listas);
+  /* confere as duas listas que importam, não só o objeto de fora */
+  if (!c || c.modo !== modo || c.materias !== materias || c.turnos !== turnos) {
+    cacheBlocos.set(s.listas, c = { modo, materias, turnos, dias: {} });
+  }
+  return c.dias[dia] || (c.dias[dia] = calcBlocos(s, dia));
+}
+function calcBlocos(s, dia) {
   const out = [];
   if ((s.modo || 'aula') === 'aula') {
     (janelaDeAula(s.listas.materias, dia)?.aulas || [])
@@ -207,8 +220,9 @@ export const trajetoEstagioFac = s => {
 };
 export const DEPOIS_DE_CHEGAR = 30;   // o café no estágio, depois de chegar e se ajeitar
 export const trajeto = (s, tipo) => {
-  const v = Number(s.cfg?.[tipo === 'aula' ? 'trajetoFaculdade' : 'trajetoEstagio']);
-  return Number.isFinite(v) && v >= 0 ? v : 30;
+  const bruto = s.cfg?.[tipo === 'aula' ? 'trajetoFaculdade' : 'trajetoEstagio'];
+  const v = Number(bruto);
+  return bruto !== '' && bruto != null && Number.isFinite(v) && v >= 0 ? v : 30;
 };
 export const INTERVALO_DIRETO = 3 * 60;
 export function estagioAntesDaAula(s, dia) {
@@ -281,20 +295,59 @@ export function pctPilar(resp, itens) {
   const sim = itens.filter(i => resp && resp[i.id] === 'sim').length;
   return Math.round((sim / itens.length) * 100);
 }
-export const pctDoDia = (s, k = iso()) => pctDia(s.dias[k], habitosDoDia(s, k));
+/* O que conta no % do dia: os hábitos que valem nele e as refeições.
+   Refeição é do pilar Dieta e conta como "sim" quando qualquer opção do
+   horário foi marcada (Almoço 1 ou Almoço 2 resolvem o almoço). Sem isso,
+   marcar o que comeu não mexia em anel nenhum. */
+export const refeicoesComoItens = s => [...new Map((s.listas.refeicoes || [])
+  .map(r => [r.grupo || r.id, { id: 'rf:' + (r.grupo || r.id), pilar: 'diet', nome: r.nome, refeicao: true }])).values()];
+/* Refeição só entra na conta a partir do primeiro dia em que alguma foi
+   marcada. Antes disso ninguém marcava refeição, e contar elas como "não"
+   derrubaria a sequência e o histórico de quem já usava o app. */
+const marcouRefeicao = e => Object.entries(e || {}).some(([c, v]) => c.startsWith('rf') && v);
+const cacheDesde = new WeakMap();
+export const refeicoesDesde = s => {
+  if (!s.extra) return null;
+  if (!cacheDesde.has(s.extra)) {
+    cacheDesde.set(s.extra, Object.keys(s.extra).filter(k => marcouRefeicao(s.extra[k])).sort()[0] || null);
+  }
+  return cacheDesde.get(s.extra);
+};
+export function contaveisDoDia(s, k = iso(), desde = refeicoesDesde(s)) {
+  const ex = (s.extra && s.extra[k]) || {};
+  const resp = { ...(s.dias[k] || {}) };
+  (s.listas.refeicoes || []).forEach(r => { if (ex['rf' + r.id]) resp['rf:' + (r.grupo || r.id)] = 'sim'; });
+  const comRefeicao = desde != null && k >= desde;
+  return { itens: [...habitosDoDia(s, k), ...(comRefeicao ? refeicoesComoItens(s) : [])], resp };
+}
+export function contaveisDoPilar(s, pilarId, k = iso()) {
+  const c = contaveisDoDia(s, k);
+  return { itens: c.itens.filter(i => i.pilar === pilarId), resp: c.resp };
+}
+export const pctPilarNoDia = (s, pilarId, k = iso()) => {
+  const c = contaveisDoPilar(s, pilarId, k);
+  return pctPilar(c.resp, c.itens);
+};
+/* teve alguma resposta no dia: hábito respondido ou refeição marcada */
+export const diaTemResposta = (s, k) => Object.keys(s.dias[k] || {}).length > 0
+  || marcouRefeicao(s.extra && s.extra[k]);
+export const pctDoDia = (s, k = iso()) => {
+  const c = contaveisDoDia(s, k);
+  return pctDia(c.resp, c.itens);
+};
 
 /* true passou, false não passou, null não havia hábito nenhum marcado pra esse
    dia — nesse caso o dia não soma na sequência e também não a quebra. */
 export function diaPassou(s, k, meta = s.cfg.metaDia) {
-  const h = habitosDoDia(s, k);
-  if (!h.length) return null;
-  return pctDia(s.dias[k], h) >= meta;
+  const c = contaveisDoDia(s, k);
+  if (!c.itens.length) return null;
+  return pctDia(c.resp, c.itens) >= meta;
 }
 
 /* O dia de hoje ainda está aberto: enquanto não bate a meta ele não quebra
    a sequência, só não soma. Por isso a contagem começa em ontem. */
 export function sequencia(s, ref = iso()) {
-  if (!s.listas.habitos.length) return 0;
+  if (!s.listas.habitos.length && !(s.listas.refeicoes || []).length) return 0;
   let n = diaPassou(s, ref) === true ? 1 : 0;
   let k = maisDias(ref, -1);
   for (let guarda = 0; guarda < 3650; guarda++) {
@@ -309,13 +362,13 @@ export function semana(s, ref = iso()) {
   const seg = maisDias(ref, -((emDia(ref).getDay() + 6) % 7));
   return DIAS_SEMANA.map((nome, i) => {
     const k = maisDias(seg, i);
-    return { k, nome, hoje: k === ref, futuro: k > ref, pct: s.dias[k] ? pctDoDia(s, k) : null };
+    return { k, nome, hoje: k === ref, futuro: k > ref, pct: diaTemResposta(s, k) ? pctDoDia(s, k) : null };
   });
 }
 export function semanaPilar(s, pilarId, ref = iso()) {
   return semana(s, ref).map(d => ({
     ...d,
-    pct: s.dias[d.k] ? pctPilar(s.dias[d.k], habitosDoPilarNoDia(s, pilarId, d.k)) : null,
+    pct: diaTemResposta(s, d.k) ? pctPilarNoDia(s, pilarId, d.k) : null,
   }));
 }
 /* dias do mês em que o pilar teve pelo menos uma resposta "sim" */
@@ -334,10 +387,10 @@ export function aderenciaPilar(s, pilarId, n = 7, ref = iso()) {
   let bons = 0, contados = 0;
   for (let i = 0; i < n; i++) {
     const k = maisDias(ref, -i);
-    const itens = habitosDoPilarNoDia(s, pilarId, k);
+    const { itens, resp } = contaveisDoPilar(s, pilarId, k);
     if (!itens.length) continue;
     contados++;
-    if (pctPilar(s.dias[k], itens) >= 75) bons++;
+    if (pctPilar(resp, itens) >= 75) bons++;
   }
   return { bons, n: contados, pct: contados ? Math.round((bons / contados) * 100) : 0 };
 }
@@ -347,7 +400,7 @@ export function porSemana(s, pilarId, n = 7, ref = iso()) {
     let dias = 0;
     for (let i = 0; i < 7; i++) {
       const k = maisDias(ref, -((n - 1 - w) * 7 + (6 - i)));
-      if (k <= ref && pctPilar(s.dias[k], habitosDoPilarNoDia(s, pilarId, k)) > 0) dias++;
+      if (k <= ref && pctPilarNoDia(s, pilarId, k) > 0) dias++;
     }
     return dias;
   });
@@ -430,7 +483,10 @@ export function macrosDoDia(s, ref = iso()) {
   s.listas.refeicoes.forEach(r => {
     if (ex['rf' + r.id]) { prot += Number(r.prot) || 0; kcal += Number(r.kcal) || 0; feitas++; }
   });
-  return { prot, kcal, feitas, total: s.listas.refeicoes.length, agua: ex.agua || 0 };
+  /* feitas e total contam horários, não opções: Almoço 1 e 2 são um almoço */
+  const grupos = refeicoesComoItens(s);
+  const marcados = new Set(s.listas.refeicoes.filter(r => ex['rf' + r.id]).map(r => r.grupo || r.id));
+  return { prot, kcal, feitas: marcados.size, total: grupos.length, opcoes: feitas, agua: ex.agua || 0 };
 }
 export const horasDoDia = (s, ref = iso()) => Number(extraDoDia(s, ref).horas) || 0;
 
@@ -532,16 +588,23 @@ export function comHorariosAjustados(habitos, conflitos) {
 export const SONO_MIN = 8 * 60;
 export const PREPARO_MIN = 45;      // do acordar até sair de casa
 export const DIA_MIN = 24 * 60;
-export const acordaMin = s => emMinutos(s.cfg?.acorda) ?? emMinutos(CFG_PADRAO.acorda);
-export const dormeMin = s => (acordaMin(s) - SONO_MIN + DIA_MIN) % DIA_MIN;
+/* Hora de acordar: a de todo dia, ou a própria daquele dia da semana
+   (s.acordaDia, 0 = SEG). Sem `k`, vale a de todo dia. */
+export const acordaPadrao = s => emMinutos(s.cfg?.acorda) ?? emMinutos(CFG_PADRAO.acorda);
+export const acordaDoDia = (s, dia) => emMinutos((s.acordaDia || {})[dia]);
+export const acordaMin = (s, k) => (k == null ? acordaPadrao(s) : acordaDoDia(s, diaIdx(k)) ?? acordaPadrao(s));
+/* Dormir sai do acordar do dia SEGUINTE: se terça acorda mais cedo, quem
+   dorme mais cedo é a segunda. */
+export const dormeMin = (s, k) =>
+  (acordaMin(s, k == null ? undefined : maisDias(k, 1)) - SONO_MIN + DIA_MIN) % DIA_MIN;
 /* minuto do relógio pro minuto "desde que acordou", pra ordenar o dia */
-export const noDia = (s, min) => (min - acordaMin(s) + DIA_MIN) % DIA_MIN;
+export const noDia = (s, min, k) => (min - acordaMin(s, k) + DIA_MIN) % DIA_MIN;
 
 /* Tudo que tem hora no dia k, em ordem: acordar, hábitos, refeições, aula
    e dormir. Hábito sem hora fica em `semHora`, que a tela mostra no fim.
    Refeições do mesmo grupo viram um item só, igual na Dieta. */
 export function linhaDoDia(s, k = iso(), grupos = []) {
-  const acorda = acordaMin(s), dorme = dormeMin(s);
+  const acorda = acordaMin(s, k), dorme = dormeMin(s, k);
   const dia = diaIdx(k);
   const blocos = blocosDoDia(s, dia);
   /* o que cai dentro de aula ou estágio. Comer não conta (come-se em
@@ -554,25 +617,31 @@ export function linhaDoDia(s, k = iso(), grupos = []) {
      trajeto. Se não sobram PREPARO_MIN entre acordar e sair, o acordar avisa
      e diz a hora que caberia. */
   const b0 = blocos[0];
-  const saida0 = b0 ? b0.de - trajeto(s, b0.tipo) : null;
+  const habs = habitosDoDia(s, k).map(h => ({ h, hd: horaDoHabito(h, s, dia) }));
+  /* se um hábito preso a esse bloco já marca a saída (Sai pra faculdade),
+     é essa a hora; senão, o começo menos o trajeto */
+  const saidaHab = b0 && habs.find(x => x.hd.bloco === b0 && x.hd.min != null && !x.hd.direto);
+  const saida0 = b0 ? (saidaHab ? saidaHab.hd.min : b0.de - trajeto(s, b0.tipo)) : null;
   const cedo = b0 && saida0 - acorda < PREPARO_MIN
     ? { ...b0, saida: saida0, sugestao: (saida0 - PREPARO_MIN + DIA_MIN) % DIA_MIN } : null;
   const itens = [{ tipo: 'acorda', id: 'acorda', min: acorda, nome: 'Acorda', cedo }];
   const semHora = [];
-  habitosDoDia(s, k).forEach(h => {
-    const hd = horaDoHabito(h, s, dia);
+  habs.forEach(({ h, hd }) => {
     if (hd.min == null) { semHora.push(h); return; }
     itens.push({ tipo: 'habito', id: h.id, min: hd.min, nome: h.nome, h,
       ancorado: hd.bloco || null, direto: hd.direto || null, antes: hd.antes,
       chegada: hd.chegada ?? null, atraso: !!hd.atraso, choque: choqueDe(hd.min, h.pilar, hd.bloco?.tipo) });
   });
+  /* refeição sem horário vai pro card de "sem horário", não some */
+  const refeicoesSemHora = [];
   grupos.forEach(g => {
     const { min, onde, aperto } = horaDaRefeicao(g, s, dia);
     if (min != null) itens.push({ tipo: 'refeicao', id: 'g' + g.grupo, min, nome: g.nome, g, onde, aperto: aperto || null });
+    else refeicoesSemHora.push(g);
   });
   /* a saída pro estágio entra sozinha, a não ser que já exista um hábito
      preso ao estágio fazendo esse papel */
-  const temSaida = habitosDoDia(s, k).some(h => h.ancora === 'estagio');
+  const temSaida = habs.some(x => x.h.ancora === 'estagio');
   if (!temSaida) {
     blocos.filter(b => b.tipo === 'estagio').forEach((b, i) => itens.push({
       tipo: 'saida', id: 'saida' + i, min: (b.de - trajeto(s, 'estagio') + DIA_MIN) % DIA_MIN,
@@ -587,17 +656,18 @@ export function linhaDoDia(s, k = iso(), grupos = []) {
   itens.push({ tipo: 'dorme', id: 'dorme', min: dorme, nome: 'Dorme' });
   /* o sort é estável: no mesmo minuto vale a ordem de cima (hábito antes de
      refeição), e acordar fica sempre no topo e dormir sempre no fim */
-  const pos = it => (it.tipo === 'acorda' ? -1 : it.tipo === 'dorme' ? DIA_MIN : noDia(s, it.min));
+  const pos = it => (it.tipo === 'acorda' ? -1 : it.tipo === 'dorme' ? DIA_MIN : noDia(s, it.min, k));
   itens.sort((x, y) => pos(x) - pos(y));
-  return { itens: itens.map(it => ({ ...it, hora: emHora(it.min) })), semHora };
+  return { itens: itens.map(it => ({ ...it, hora: emHora(it.min) })), semHora, refeicoesSemHora };
 }
 
 /* qual item da linha é o de agora: o último que já começou */
 export function itemDeAgora(s, itens, agora = new Date()) {
-  const m = noDia(s, agora.getHours() * 60 + agora.getMinutes());
+  const k = iso(agora);
+  const m = noDia(s, agora.getHours() * 60 + agora.getMinutes(), k);
   let idx = -1;
   itens.forEach((it, i) => {
-    if (it.tipo === 'dorme' ? m >= noDia(s, it.min) : it.tipo === 'acorda' || noDia(s, it.min) <= m) idx = i;
+    if (it.tipo === 'dorme' ? m >= noDia(s, it.min, k) : it.tipo === 'acorda' || noDia(s, it.min, k) <= m) idx = i;
   });
   return idx;
 }
@@ -605,13 +675,13 @@ export function itemDeAgora(s, itens, agora = new Date()) {
 /* ---- progresso ----
    O histórico começa no primeiro dia com alguma resposta. Dali pra frente,
    dia sem resposta conta como zero: deixar de abrir o app também é furar. */
-export const primeiroDia = s => Object.keys(s.dias || {})
-  .filter(k => Object.keys(s.dias[k] || {}).length).sort()[0] || null;
+export const primeiroDia = s => [...new Set([...Object.keys(s.dias || {}), ...Object.keys(s.extra || {})])]
+  .filter(k => diaTemResposta(s, k)).sort()[0] || null;
 
 /* um dia do histórico: null antes de começar, no futuro ou sem hábito */
 export function pctHistorico(s, k, ref = iso(), inicio = primeiroDia(s)) {
   if (!inicio || k < inicio || k > ref) return null;
-  if (!habitosDoDia(s, k).length) return null;
+  if (!contaveisDoDia(s, k).itens.length) return null;
   return pctDoDia(s, k);
 }
 
@@ -676,17 +746,13 @@ export const paraBackup = (s, perfilId) => ({
   ritmo_backup: VERSAO_BACKUP, perfil: perfilId, nome: s.nome, exportado: iso(), estado: s,
 });
 /* devolve null em vez de lançar: arquivo errado não pode derrubar o app */
-export function deBackup(json) {
+export function deBackup(json, id = json?.perfil) {
   if (!json || json.ritmo_backup !== VERSAO_BACKUP || !json.estado) return null;
   const base = novoPerfil(json.nome || json.estado.nome || 'Pedro');
-  const s = json.estado;
-  return {
-    ...base, ...s,
-    cfg: { ...base.cfg, ...s.cfg },
-    dias: s.dias || {}, extra: s.extra || {}, tx: s.tx || [],
-    joelho: s.joelho || {}, volta: s.volta || {},
-    listas: { ...base.listas, ...s.listas },
-  };
+  /* o arquivo é a verdade: volta como foi salvo, e os pedidos do perfil
+     ficam como já feitos pra não mexer nele na próxima abertura */
+  const todos = (AJUSTES_PEDIDOS[id] || []).map(x => x.id);
+  return normalizar(id, base, { ...json.estado, aplicados: [...new Set([...(json.estado.aplicados || []), ...todos])] });
 }
 export function horasDaSemana(s, ref = iso()) {
   return semana(s, ref).map(d => ({ ...d, horas: horasDoDia(s, d.k) }));
@@ -774,6 +840,8 @@ export function semItem(s, chave, id) {
 const CHAVE_PERFIL = 'ritmo:perfil';
 const chaveDe = id => `ritmo:v2:${id}`;
 
+/* campos de Ajustes que podem ficar em branco (aí vale o padrão) */
+export const CFG_OPCIONAL = ['trajetoEstagio', 'trajetoFaculdade', 'trajetoEstagioFac'];
 export const CFG_PADRAO = {
   metaDia: 70,        // % de "sim" pro dia contar na sequência
   proteina: 150,      // g por dia
@@ -797,6 +865,7 @@ export const novoPerfil = nome => ({
   anim: true,
   tema: 'sistema',
   modo: 'aula',     // semana com aula ou sem aula; muda quais hábitos valem
+  acordaDia: {},    // hora de acordar própria de um dia da semana (0 = SEG)
   joelho: {},       // por dia: 'verde' | 'amarelo' | 'vermelho'
   volta: {},        // critérios de volta ao futebol marcados na mão
   cicloInicio: iso(),
@@ -831,6 +900,8 @@ export const AJUSTES_PEDIDOS = {
     /* a faculdade é na cidade de casa: do estágio até ela é o ônibus de volta */
     { id: 'faculdade-na-minha-cidade', cfg: { trajetoEstagioFac: 60 } },
     /* terça e sexta: café 7h30 e almoço só às 14h, o lanche segura o meio */
+    /* terça: estágio às 7h e 60 min de trajeto, sai às 6h; acorda 5h15 */
+    { id: 'acorda-terca-0515', acordaDia: { 1: '05:15' } },
     { id: 'lanche-manha-estagio', habitos: [{ pilar: 'diet', nome: 'Lanche da manhã no estágio', hora: '10:30',
       meta: 'fruta, iogurte ou sanduíche, levado de casa · segura até o almoço das 14h', dias: [1, 4], modo: '' }] },
     { id: 'refeicoes-dia-de-aula', refeicoes: { cafe: { ondeAula: 'estagio' }, almoco: { ondeAula: 'faculdade' } } },
@@ -843,6 +914,7 @@ export function aplicarPedidos(id, s) {
   return novos.reduce((acc, x) => ({
     ...acc,
     cfg: { ...acc.cfg, ...(x.cfg || {}) },
+    acordaDia: { ...(acc.acordaDia || {}), ...(x.acordaDia || {}) },
     listas: !x.refeicoes && !x.habitos ? acc.listas : {
       ...acc.listas,
       /* hábito novo entra uma vez; se já existe um com o mesmo nome, fica o dele */
@@ -858,19 +930,27 @@ export function aplicarPedidos(id, s) {
     },
   }), { ...s, aplicados: [...feitos, ...novos.map(x => x.id)] });
 }
+/* o mesmo caminho pra dado salvo e pra backup restaurado: completa o que
+   falta, migra as listas e aplica o que foi pedido pro perfil */
+function normalizar(id, base, s) {
+  return aplicarPedidos(id, {
+    ...base, ...s,
+    cfg: { ...base.cfg, ...s.cfg },
+    dias: s.dias || {}, extra: s.extra || {}, tx: s.tx || [],
+    joelho: s.joelho || {}, volta: s.volta || {}, modo: s.modo || 'aula', acordaDia: s.acordaDia || {},
+    listas: migrarListas({ ...base.listas, ...s.listas }),
+  });
+}
+/* perfil apagado nasce vazio de verdade: os pedidos ficam como já feitos,
+   senão voltariam na próxima abertura */
+export const perfilApagado = (id, nome) =>
+  ({ ...novoPerfil(nome), aplicados: (AJUSTES_PEDIDOS[id] || []).map(x => x.id) });
 export function carregarPerfil(id) {
   const base = novoPerfil((PERFIS.find(p => p.id === id) || { nome: 'Pedro' }).nome);
   try {
     const bruto = localStorage.getItem(chaveDe(id));
     if (!bruto) return aplicarPedidos(id, base);
-    const s = JSON.parse(bruto);
-    return aplicarPedidos(id, {
-      ...base, ...s,
-      cfg: { ...base.cfg, ...s.cfg },
-      dias: s.dias || {}, extra: s.extra || {}, tx: s.tx || [],
-      joelho: s.joelho || {}, volta: s.volta || {}, modo: s.modo || 'aula',
-      listas: migrarListas({ ...base.listas, ...s.listas }),
-    });
+    return normalizar(id, base, JSON.parse(bruto));
   } catch {
     return base;          // storage bloqueado ou JSON corrompido: começa limpo
   }

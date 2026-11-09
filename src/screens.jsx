@@ -97,7 +97,8 @@ function Hoje({ s, a }) {
   /* o dia conta só o que vale hoje; o acervo inteiro fica na tela Rotina */
   const habitos = D.habitosDoDia(s, hoje);
   const p = D.pctDoDia(s, hoje);
-  const sim = D.contar(resp, habitos, 'sim');
+  const cont = D.contaveisDoDia(s, hoje);   // hábitos e refeições, o mesmo que o anel conta
+  const sim = D.contar(cont.resp, cont.itens, 'sim');
   const nao = D.contar(resp, habitos, 'nao');
   const pendentes = habitos.filter(h => !resp[h.id]);
   const rt = J.reteste(s.listas.testes, hoje);
@@ -157,7 +158,7 @@ function Hoje({ s, a }) {
         <div className="today">
           <Ring pct={p} sub="do dia" />
           <div className="today-txt">
-            <h2>{sim} de {habitos.length} em pé</h2>
+            <h2>{sim} de {cont.itens.length} em pé</h2>
             <p>
               {nao > 0 && `${nao} marcado como não. `}
               {pendentes.length > 0 ? `Faltam ${pendentes.length} respostas.` : 'Dia respondido inteiro.'}
@@ -170,7 +171,7 @@ function Hoje({ s, a }) {
         <div className="mini-rings">
           {D.PILARES.map((pl, i) => (
             <div className="mini" key={pl.id}>
-              <Ring pct={D.pctPilar(resp, D.habitosDoPilarNoDia(s, pl.id, hoje))} size={42} sw={5} atraso={.16 + i * .07} />
+              <Ring pct={D.pctPilarNoDia(s, pl.id, hoje)} size={42} sw={5} atraso={.16 + i * .07} />
               <b>{pl.nome}</b>
             </div>
           ))}
@@ -214,7 +215,7 @@ function Hoje({ s, a }) {
         <Card>
           <div className="card-head"><h2>Dieta de hoje</h2><button className="more" onClick={() => a.go('dieta')}>Dieta</button></div>
           <div className="today">
-            <Ring pct={Math.round(macros.feitas / macros.total * 100)} size={64} sw={7} sub="refeições" />
+            <Ring pct={macros.total ? Math.round(macros.feitas / macros.total * 100) : 0} size={64} sw={7} sub="refeições" />
             <div className="today-txt">
               <h2 style={{ fontSize: 16 }}>{macros.prot} g de proteína</h2>
               <p>{macros.feitas} de {macros.total} refeições · {macros.kcal.toLocaleString('pt-BR')} kcal de {s.cfg.kcal.toLocaleString('pt-BR')}</p>
@@ -368,15 +369,19 @@ function Rotina({ s, a }) {
   const ex = D.extraDoDia(s, dia);
   const hoje = dia === D.iso();
   const grupos = Di.gruposDeRefeicao(s.listas.refeicoes);
-  const { itens, semHora } = D.linhaDoDia(s, dia, grupos);
+  const { itens, semHora, refeicoesSemHora } = D.linhaDoDia(s, dia, grupos);
   const agora = hoje ? D.itemDeAgora(s, itens) : -1;
   const habitos = D.habitosDoDia(s, dia);
   const respondidos = habitos.filter(h => resp[h.id]).length;
   const pct = D.pctDoDia(s, dia);
   const refeicoes = itens.filter(it => it.tipo === 'refeicao');
   const refFeitas = refeicoes.filter(it => it.g.opcoes.some(r => ex['rf' + r.id])).length;
-  const acorda = D.emHora(D.acordaMin(s));
-  const dorme = D.emHora(D.dormeMin(s));
+  const diaSem = D.diaIdx(dia);
+  const proprio = D.acordaDoDia(s, diaSem) != null;
+  const acorda = D.emHora(D.acordaMin(s, dia));
+  const dorme = D.emHora(D.dormeMin(s, dia));
+  const nomeDia = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'][diaSem];
+  const amanha = D.maisDias(dia, 1);
   const nadaCadastrado = !s.listas.habitos.length && !grupos.length;
 
   /* marcar a refeição pela rotina marca a primeira opção; desmarcar tira
@@ -393,7 +398,10 @@ function Rotina({ s, a }) {
         ? `${it.cedo.tipo === 'aula' ? 'A aula' : 'O estágio'} começa às ${D.emHora(it.cedo.de)} e a saída é às ${D.emHora((it.cedo.saida + D.DIA_MIN) % D.DIA_MIN)}. Pra ter ${D.PREPARO_MIN} min antes de sair, acorde às ${D.emHora(it.cedo.sugestao)}.`
         : 'Mesmo horário todo dia. Abre a janela e bebe um copo de água.';
     }
-    if (it.tipo === 'dorme') return `8 horas antes de acordar. Tela desligada às ${D.emHora((D.dormeMin(s) - 30 + D.DIA_MIN) % D.DIA_MIN)}.`;
+    if (it.tipo === 'dorme') {
+      return `8 horas antes de acordar amanhã, às ${D.emHora(D.acordaMin(s, amanha))}. `
+        + `Tela desligada às ${D.emHora((it.min - 30 + D.DIA_MIN) % D.DIA_MIN)}.`;
+    }
     if (it.tipo === 'saida') return `${it.trajeto} min até o estágio, que começa às ${D.emHora(it.ate)}. Muda em Ajustes.`;
     if (it.tipo === 'aula' || it.tipo === 'estagio') {
       const ate = `${it.tipo === 'aula' ? 'Aula' : 'Estágio'} até ${D.emHora(it.ate)}`;
@@ -433,11 +441,17 @@ function Rotina({ s, a }) {
             <div className="horas-sono">
               <label className="hora-chip">
                 <span>Acorda</span>
-                <input type="time" value={acorda} aria-label="Hora de acordar"
-                  onChange={e => a.setAcorda(e.target.value)} />
+                <input type="time" value={acorda} aria-label={proprio ? `Hora de acordar na ${nomeDia}` : 'Hora de acordar todo dia'}
+                  onChange={e => (proprio ? a.setAcordaDia(diaSem, e.target.value) : a.setAcorda(e.target.value))} />
               </label>
               <span className="hora-chip fixo"><span>Dorme</span><b className="num">{dorme}</b></span>
             </div>
+            {/* por padrão o horário vale todo dia; dá pra soltar um dia só */}
+            <button className="link" style={{ marginTop: 6, fontSize: 12 }}
+              onClick={() => a.setAcordaDia(diaSem, proprio ? null : acorda)}>
+              {proprio ? `Só ${nomeDia === 'sábado' || nomeDia === 'domingo' ? 'no' : 'na'} ${nomeDia} · voltar pro de todo dia (${D.emHora(D.acordaPadrao(s))})`
+                : `Vale todo dia · usar um horário só ${nomeDia === 'sábado' || nomeDia === 'domingo' ? 'no' : 'na'} ${nomeDia}`}
+            </button>
           </div>
         </div>
         <div className="sep" />
@@ -510,11 +524,21 @@ function Rotina({ s, a }) {
           </Card>
         )}
 
-      {semHora.length > 0 && (
+      {(semHora.length > 0 || refeicoesSemHora.length > 0) && (
         <Card>
           <div className="card-head"><h2>Sem horário</h2><span className="more">qualquer hora do dia</span></div>
           <div className="habits">
             {semHora.map(h => <Habito key={h.id} h={h} estado={resp[h.id]} onPick={v => a.marcar(h.id, v, dia)} />)}
+            {/* refeição sem horário também conta no anel: precisa dar pra marcar */}
+            {refeicoesSemHora.map(g => {
+              const feita = g.opcoes.some(r => ex['rf' + r.id]);
+              return (
+                <div className="habit" key={g.grupo} data-state={feita ? 'sim' : ''}>
+                  <div className="habit-txt"><b>{g.nome}</b><span>Refeição</span></div>
+                  <Check on={feita} label={g.nome} onClick={() => marcarRefeicao(g)} />
+                </div>
+              );
+            })}
           </div>
           <p className="nota">Preencha o Horário do hábito pra ele entrar na linha do dia.</p>
         </Card>

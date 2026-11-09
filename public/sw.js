@@ -1,14 +1,24 @@
 /* Offline do Ritmo. Cache de runtime: não precisa saber o nome dos arquivos
    que o Vite gera com hash. Navegação busca a rede primeiro (pra atualização
    chegar), o resto é cache primeiro (pra abrir rápido e sem internet). */
-const CACHE = 'ritmo-v1';
+const CACHE = 'ritmo-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+/* cache de versão antiga sai: cada deploy deixava o bundle anterior lá dentro */
+self.addEventListener('activate', e => e.waitUntil(
+  caches.keys()
+    .then(ks => Promise.all(ks.filter(k => k.startsWith('ritmo-') && k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()),
+));
 
+/* Só guarda resposta boa. Um 404 passageiro no meio de um deploy ficava
+   guardado e, como o resto é cache primeiro, servido pra sempre. A resposta
+   opaca (fonte de outro domínio) não diz o status, então entra. */
 const guardar = (req, res) => {
-  const copia = res.clone();
-  caches.open(CACHE).then(c => c.put(req, copia)).catch(() => {});
+  if (res.ok || res.type === 'opaque') {
+    const copia = res.clone();
+    caches.open(CACHE).then(c => c.put(req, copia)).catch(() => {});
+  }
   return res;
 };
 

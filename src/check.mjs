@@ -119,6 +119,24 @@ const comDieta = perfil({
 });
 const m = D.macrosDoDia(comDieta);
 assert.equal(m.feitas, 2);
+{
+  /* o bug do anel da dieta: Almoço 1 e 2 são um almoço só, e marcar
+     refeição tem que mexer no anel do pilar e no do dia */
+  const alts = [{ id: 'a', grupo: 'cafe', nome: 'Café' }, { id: 'b', grupo: 'alm', nome: 'Almoço 1' },
+    { id: 'c', grupo: 'alm', nome: 'Almoço 2' }, { id: 'd', grupo: 'jan', nome: 'Jantar' }];
+  const pd = perfil({ listas: { refeicoes: alts } });
+  pd.listas.habitos = [{ id: 'hd', pilar: 'diet', nome: 'Dieta na linha' }];
+  assert.equal(D.macrosDoDia(pd).total, 3, 'três horários, não quatro opções');
+  assert.equal(D.pctPilarNoDia(pd, 'diet'), 0);
+  pd.extra = { [hoje]: { rfa: true, rfc: true } };
+  assert.equal(D.macrosDoDia(pd).feitas, 2);
+  assert.equal(D.pctPilarNoDia(pd, 'diet'), 50, 'café e almoço de 4 itens');
+  pd.extra[hoje].rfd = true;
+  pd.dias = { [hoje]: { hd: 'sim' } };
+  assert.equal(D.pctPilarNoDia(pd, 'diet'), 100);
+  assert.equal(D.macrosDoDia(pd).feitas, D.macrosDoDia(pd).total, 'comeu tudo fecha 100%');
+  assert.equal(D.primeiroDia({ ...pd, dias: {} }), hoje, 'dia só com refeição marcada já conta como começo');
+}
 assert.equal(m.total, 3);
 assert.equal(m.prot, 80);
 assert.equal(m.kcal, 1200);
@@ -170,6 +188,8 @@ const comTudo = perfil({ dias, tx: D.doMes(tx), listas: { refeicoes: REF }, extr
 assert.equal(D.progresso({ tipo: 'saldo' }, comTudo).p, 100);
 assert.equal(D.progresso({ tipo: 'saldo' }, perfil({ tx: [{ data: hoje, cat: 'x', v: -10 }] })).p, 0);
 assert.equal(D.progresso({ tipo: 'proteina' }, comTudo).p, Math.round(80 / D.CFG_PADRAO.proteina * 100));
+/* refeição só conta a partir do primeiro dia em que alguma foi marcada
+   (aqui, hoje): os dias anteriores seguem medidos só pelo hábito */
 assert.equal(D.progresso({ tipo: 'dieta', alvo: 86 }, comTudo).p, 83);
 assert.equal(D.progresso({ tipo: 'manual', valor: 1740, alvo: 3000 }, comTudo).p, 58);
 assert.equal(D.progresso({ tipo: 'manual', valor: 99, alvo: 0 }, comTudo).p, 0, 'alvo zero não explode');
@@ -958,9 +978,9 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   p.listas.turnos = [{ id: 'b', nome: 'Estágio', dias: [1], inicio: '07:00', fim: '13:00' },
     { id: 'c', nome: 'Estágio', dias: [4], inicio: '08:00', fim: '13:00' }];
   const seg = D.maisDias(hoje, -D.diaIdx(hoje));
-  const ter = D.linhaDoDia(p, D.maisDias(seg, 1)).itens;
+  const ter = D.linhaDoDia({ ...p, acordaDia: {} }, D.maisDias(seg, 1)).itens;
   assert.equal(ter.find(i => i.tipo === 'saida').hora, '06:00');
-  assert.equal(D.emHora(ter[0].cedo.sugestao), '05:15');
+  assert.equal(D.emHora(ter[0].cedo.sugestao), '05:15', 'acordando 6h na terça, avisa e sugere 5h15');
   const sex = D.linhaDoDia(p, D.maisDias(seg, 4)).itens;
   assert.equal(sex.find(i => i.tipo === 'saida').hora, '07:00');
   assert.equal(sex[0].cedo, null, 'sexta: acorda 6h, sai 7h, dá tempo');
@@ -1016,6 +1036,90 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.ok(!D.habitosDoDia(p, D.maisDias(seg, 2)).includes(l), 'quarta não tem');
   const jaTinha = { ...antes, listas: { ...antes.listas, habitos: [{ id: 'y', pilar: 'diet', nome: 'Lanche da manhã no estágio', hora: '10:00' }] } };
   assert.equal(D.aplicarPedidos('pedro', jaTinha).listas.habitos.length, 1, 'não duplica');
+}
+
+
+/* ---- acordar diferente na terça ---- */
+{
+  const p = D.aplicarPedidos('pedro', { ...D.novoPerfil('Pedro'),
+    aplicados: ['acorda-0600', 'trajeto-onibus', 'refeicoes-dia-de-aula', 'trajeto-ate-o-ponto',
+      'faculdade-na-minha-cidade', 'lanche-manha-estagio'],
+    cfg: { ...D.CFG_PADRAO, acorda: '06:00', trajetoEstagio: 60 } });
+  assert.deepEqual(p.acordaDia, { 1: '05:15' });
+  const seg = D.maisDias(hoje, -D.diaIdx(hoje));
+  const ter = D.maisDias(seg, 1), qua = D.maisDias(seg, 2);
+  assert.equal(D.emHora(D.acordaMin(p, ter)), '05:15');
+  assert.equal(D.emHora(D.acordaMin(p, qua)), '06:00');
+  assert.equal(D.emHora(D.dormeMin(p, seg)), '21:15', 'segunda dorme cedo pra terça');
+  assert.equal(D.emHora(D.dormeMin(p, ter)), '22:00');
+  assert.equal(D.emHora(D.acordaMin(p)), '06:00', 'sem dia, vale o de todo dia');
+  p.listas.turnos = [{ id: 'b', nome: 'Estágio', dias: [1], inicio: '07:00', fim: '13:00' }];
+  const lt = D.linhaDoDia(p, ter).itens;
+  assert.equal(lt[0].hora, '05:15');
+  assert.equal(lt[0].cedo, null, 'acordando 5h15 sobram 45 min até sair às 6h');
+  assert.equal(D.linhaDoDia(p, seg).itens.at(-1).hora, '21:15');
+  // agora: terça 5h30 é depois de acordar, não madrugada de segunda
+  const as530 = new Date(ter + 'T05:30:00');
+  assert.equal(lt[D.itemDeAgora(p, lt, as530)].nome, 'Acorda');
+}
+
+
+/* ---- revisão: correções ---- */
+{
+  // 1. começar a marcar refeição não derruba a sequência de antes
+  const p = D.novoPerfil('Seq');
+  p.listas.habitos = [{ id: 'a', pilar: 'gym', nome: 'A' }, { id: 'b', pilar: 'fac', nome: 'B' }];
+  p.listas.refeicoes = [{ id: 'r1', grupo: 'cafe', nome: 'Café' }, { id: 'r2', grupo: 'alm', nome: 'Almoço' }];
+  p.dias = {};
+  for (let i = 1; i <= 10; i++) p.dias[D.maisDias(hoje, -i)] = { a: 'sim', b: 'sim' };
+  assert.equal(D.sequencia(p), 10, 'sem refeição marcada nunca, só hábito conta');
+  p.extra = { [D.maisDias(hoje, -1)]: { rfr1: true, rfr2: true } };
+  assert.equal(D.sequencia(p), 10, 'passar a marcar refeição ontem não apaga os 9 dias antes');
+  p.extra = { [D.maisDias(hoje, -1)]: { rfr1: true } };   // ontem: 2 hábitos + 1 de 2 refeições = 75%
+  assert.equal(D.sequencia(p), 10);
+  assert.equal(D.refeicoesDesde(p), D.maisDias(hoje, -1));
+  assert.equal(D.contaveisDoDia(p, D.maisDias(hoje, -2)).itens.length, 2, 'antes do primeiro dia de refeição');
+  assert.equal(D.contaveisDoDia(p, hoje).itens.length, 4);
+
+  // 2. apagar o perfil não traz os pedidos de volta na próxima abertura
+  const zerado = D.perfilApagado('pedro', 'Pedro');
+  assert.equal(D.aplicarPedidos('pedro', zerado), zerado);
+  assert.equal(zerado.listas.habitos.length, 0);
+
+  // 6. backup antigo restaurado passa pela mesma migração
+  const velho = { ritmo_backup: D.VERSAO_BACKUP, perfil: 'ana', nome: 'Ana',
+    estado: { nome: 'Ana', listas: { habitos: [{ id: 'f', pilar: 'fac', nome: 'Sai pra faculdade', hora: '08:00' }] } } };
+  const rest = D.deBackup(velho);
+  assert.equal(rest.listas.habitos[0].ancora, 'aula');
+  assert.deepEqual(rest.acordaDia, {});
+  assert.ok(Array.isArray(rest.listas.turnos));
+
+  // 4. refeição sem horário aparece pra marcar
+  const ps = D.novoPerfil('SemHora');
+  const g = Di.gruposDeRefeicao([{ id: 'x', grupo: 'ceia', nome: 'Ceia' }]);
+  assert.equal(D.linhaDoDia(ps, hoje, g).refeicoesSemHora.length, 1);
+
+  // 5. a saída que o aviso usa é a do hábito que já marca a saída
+  const pc = D.novoPerfil('Saida');
+  pc.cfg.acorda = '13:00';
+  pc.cfg.trajetoFaculdade = 50;
+  pc.listas.materias = [{ id: 'm', nome: 'Redes', dias: [0, 1, 2, 3, 4, 5, 6], inicio: '14:00', fim: '17:00' }];
+  pc.listas.habitos = [{ id: 's', pilar: 'fac', nome: 'Sai pra faculdade', ancora: 'aula', antes: 30, dias: [] }];
+  const l = D.linhaDoDia(pc, hoje).itens;
+  assert.equal(l.find(i => i.id === 's').hora, '13:30');
+  assert.equal(D.emHora(l[0].cedo.saida), '13:30', 'o aviso usa 13:30, não 13:10');
+
+  // 7. trajeto em branco usa o padrão, não zero
+  assert.equal(D.trajeto({ cfg: { trajetoEstagio: '' } }, 'estagio'), 30);
+  assert.ok(D.CFG_OPCIONAL.includes('trajetoEstagioFac'));
+
+  // 8. o cache dos blocos acompanha a lista e o modo
+  const pb = D.novoPerfil('Cache');
+  pb.listas.materias = [{ id: 'm', nome: 'X', dias: [0], inicio: '08:00', fim: '10:00' }];
+  assert.equal(D.blocosDoDia(pb, 0).length, 1);
+  assert.equal(D.blocosDoDia({ ...pb, modo: 'ferias' }, 0).length, 0, 'mudar o modo não reaproveita o cache');
+  const pb2 = D.comItem(pb, 'materias', { nome: 'Y', dias: [0], inicio: '10:00', fim: '11:00' });
+  assert.equal(D.blocosDoDia(pb2, 0).length, 2, 'lista nova, conta nova');
 }
 
 console.log('ok — todas as regras do Ritmo passaram');
