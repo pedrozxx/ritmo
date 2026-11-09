@@ -429,6 +429,124 @@ export function comHorariosAjustados(habitos, conflitos) {
   return habitos.map(h => (novo[h.id] ? { ...h, hora: novo[h.id] } : h));
 }
 
+/* ---- a rotina hora a hora ----
+   O dia começa na hora de acordar e termina 8 horas antes dela, no dia
+   seguinte. O que cai de madrugada (depois da meia-noite e antes de acordar)
+   vai pro fim da lista, não pro começo. */
+export const SONO_MIN = 8 * 60;
+export const DIA_MIN = 24 * 60;
+export const acordaMin = s => emMinutos(s.cfg?.acorda) ?? emMinutos(CFG_PADRAO.acorda);
+export const dormeMin = s => (acordaMin(s) - SONO_MIN + DIA_MIN) % DIA_MIN;
+/* minuto do relógio pro minuto "desde que acordou", pra ordenar o dia */
+export const noDia = (s, min) => (min - acordaMin(s) + DIA_MIN) % DIA_MIN;
+
+/* Tudo que tem hora no dia k, em ordem: acordar, hábitos, refeições, aula
+   e dormir. Hábito sem hora fica em `semHora`, que a tela mostra no fim.
+   Refeições do mesmo grupo viram um item só, igual na Dieta. */
+export function linhaDoDia(s, k = iso(), grupos = []) {
+  const acorda = acordaMin(s), dorme = dormeMin(s);
+  const itens = [{ tipo: 'acorda', id: 'acorda', min: acorda, nome: 'Acorda' }];
+  const semHora = [];
+  habitosDoDia(s, k).forEach(h => {
+    const min = emMinutos(h.hora);
+    if (min == null) semHora.push(h);
+    else itens.push({ tipo: 'habito', id: h.id, min, nome: h.nome, h });
+  });
+  grupos.forEach(g => {
+    const min = emMinutos(g.hora);
+    if (min != null) itens.push({ tipo: 'refeicao', id: 'g' + g.grupo, min, nome: g.nome, g });
+  });
+  if ((s.modo || 'aula') === 'aula') {
+    const j = janelaDeAula(s.listas.materias, diaIdx(k));
+    (j ? j.aulas : []).forEach((m, i) =>
+      itens.push({ tipo: 'aula', id: 'aula' + i, min: m.de, ate: m.ate, nome: m.nome }));
+  }
+  itens.push({ tipo: 'dorme', id: 'dorme', min: dorme, nome: 'Dorme' });
+  /* o sort é estável: no mesmo minuto vale a ordem de cima (hábito antes de
+     refeição), e acordar fica sempre no topo e dormir sempre no fim */
+  const pos = it => (it.tipo === 'acorda' ? -1 : it.tipo === 'dorme' ? DIA_MIN : noDia(s, it.min));
+  itens.sort((x, y) => pos(x) - pos(y));
+  return { itens: itens.map(it => ({ ...it, hora: emHora(it.min) })), semHora };
+}
+
+/* qual item da linha é o de agora: o último que já começou */
+export function itemDeAgora(s, itens, agora = new Date()) {
+  const m = noDia(s, agora.getHours() * 60 + agora.getMinutes());
+  let idx = -1;
+  itens.forEach((it, i) => {
+    if (it.tipo === 'dorme' ? m >= noDia(s, it.min) : it.tipo === 'acorda' || noDia(s, it.min) <= m) idx = i;
+  });
+  return idx;
+}
+
+/* ---- progresso ----
+   O histórico começa no primeiro dia com alguma resposta. Dali pra frente,
+   dia sem resposta conta como zero: deixar de abrir o app também é furar. */
+export const primeiroDia = s => Object.keys(s.dias || {})
+  .filter(k => Object.keys(s.dias[k] || {}).length).sort()[0] || null;
+
+/* um dia do histórico: null antes de começar, no futuro ou sem hábito */
+export function pctHistorico(s, k, ref = iso(), inicio = primeiroDia(s)) {
+  if (!inicio || k < inicio || k > ref) return null;
+  if (!habitosDoDia(s, k).length) return null;
+  return pctDoDia(s, k);
+}
+
+/* os últimos n dias, do mais velho pro mais novo */
+export function historico(s, n = 30, ref = iso()) {
+  const inicio = primeiroDia(s);
+  return Array.from({ length: n }, (_, i) => {
+    const k = maisDias(ref, i - n + 1);
+    return { k, pct: pctHistorico(s, k, ref, inicio) };
+  });
+}
+
+/* média dos dias que contam, e quantos bateram a meta. Hoje fica de fora
+   enquanto não bate: o dia ainda está aberto, igual na sequência. */
+export function resumoDias(s, n = 7, ref = iso()) {
+  const dias = historico(s, n, ref)
+    .filter(d => d.pct !== null && !(d.k === ref && d.pct < s.cfg.metaDia));
+  const soma = dias.reduce((t, d) => t + d.pct, 0);
+  return {
+    media: dias.length ? Math.round(soma / dias.length) : 0,
+    bons: dias.filter(d => d.pct >= s.cfg.metaDia).length,
+    contados: dias.length,
+  };
+}
+
+/* a maior sequência que já teve, do primeiro dia até hoje */
+export function melhorSequencia(s, ref = iso()) {
+  const inicio = primeiroDia(s);
+  if (!inicio) return 0;
+  let melhor = 0, atual = 0;
+  for (let k = inicio, guarda = 0; k <= ref && guarda < 3650; k = maisDias(k, 1), guarda++) {
+    const p = diaPassou(s, k);
+    if (p === true) melhor = Math.max(melhor, ++atual);
+    else if (p === false && k !== ref) atual = 0;
+  }
+  return melhor;
+}
+
+/* cada hábito nos últimos n dias: em quantos ele valia e em quantos foi sim.
+   Ordena do mais furado pro mais firme, que é o que interessa ver primeiro. */
+export function placarHabitos(s, n = 30, ref = iso()) {
+  const inicio = primeiroDia(s);
+  if (!inicio) return [];
+  return s.listas.habitos.map(h => {
+    let vale = 0, sim = 0, nao = 0;
+    for (let i = 0; i < n; i++) {
+      const k = maisDias(ref, -i);
+      if (k < inicio || !valeNoDia(h, s, k)) continue;
+      const r = (s.dias[k] || {})[h.id];
+      if (k === ref && !r) continue;        // hoje sem resposta ainda não é falha
+      vale++;
+      if (r === 'sim') sim++;
+      if (r === 'nao') nao++;
+    }
+    return { h, vale, sim, nao, pct: vale ? Math.round((sim / vale) * 100) : 0 };
+  }).filter(x => x.vale > 0).sort((a, b) => a.pct - b.pct || b.vale - a.vale);
+}
+
 /* ---- backup: o perfil inteiro num arquivo, pra não depender do navegador ---- */
 export const VERSAO_BACKUP = 1;
 export const paraBackup = (s, perfilId) => ({
@@ -543,6 +661,7 @@ export const CFG_PADRAO = {
   horasSemana: 30,    // meta de horas de estágio na semana
   saldoBase: '',      // quanto a pessoa disse que tinha, e quando
   saldoBaseEm: '',
+  acorda: '07:00',    // hora de acordar; a de dormir sai dela (8 h antes)
 };
 /* Um perfil nasce vazio: só a estrutura, nenhum dado inventado.
    As categorias de gasto vêm preenchidas porque são genéricas — e dá pra editar. */

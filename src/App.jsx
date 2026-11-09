@@ -13,6 +13,7 @@ import { Anim, Ico, LISTA, SUAVE, MOLA_CALMA } from './ui.jsx';
 
 const MENU = [
   ['hoje', 'Hoje', 'hoje'], ['percurso', 'Percurso', 'percurso'], ['rotina', 'Rotina', 'rotina'],
+  ['progresso', 'Progresso', 'progresso'],
   ['academia', 'Academia', 'gym'], ['joelho', 'Joelho', 'gym'],
   ['dieta', 'Dieta', 'diet'], ['faculdade', 'Faculdade', 'fac'],
   ['estagio', 'Estágio', 'est'], ['financeiro', 'Financeiro', 'fin'], ['metas', 'Metas', 'metas'],
@@ -31,7 +32,12 @@ const subtitulo = (tela, s) => {
   return {
     hoje: D.dataLonga(),
     percurso: `Dia ${c.dia} de ${D.CICLO_DIAS} · fase ${c.fase.nome}`,
-    rotina: `${s.listas.habitos.length} ${s.listas.habitos.length === 1 ? 'hábito' : 'hábitos'} em ${D.PILARES.length} pilares`,
+    rotina: `Acorda ${D.emHora(D.acordaMin(s))} · dorme ${D.emHora(D.dormeMin(s))}`,
+    progresso: (() => {
+      const r = D.resumoDias(s, 7);
+      if (!D.primeiroDia(s)) return 'sem histórico ainda';
+      return r.contados ? `média de ${r.media}% nos últimos 7 dias` : 'primeiro dia';
+    })(),
     academia: `${D.diasComPilar(s, 'gym')} dias de treino no mês`,
     joelho: (() => {
       const luz = J.luzDoDia(s, D.iso());
@@ -136,6 +142,8 @@ export default function App() {
     /* troca o perfil inteiro por um backup lido de arquivo */
     restaurar: estado => setS(estado),
     setCampo: (k, v) => setS(p => ({ ...p, [k]: v })),
+    /* hora de acordar é texto (07:00), não número como o resto do cfg */
+    setAcorda: v => { if (D.emMinutos(v) != null) setS(p => ({ ...p, cfg: { ...p.cfg, acorda: D.emHora(D.emMinutos(v)) } })); },
     setCfg: (k, v) => setS(p => ({ ...p, cfg: { ...p.cfg, [k]: v === '' ? 0 : Number(v) } })),
     reiniciarCiclo: () => setS(p => ({ ...p, cicloInicio: D.iso() })),
     /* plano de treino vindo de fora; substitui as rotinas e a divisão da semana */

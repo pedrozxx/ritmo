@@ -739,4 +739,63 @@ assert.equal(semTreino.eventos.length, 1, 'sem plano de treino não exporta rete
 assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').eventos.length, 0,
   'perfil vazio gera calendário vazio, sem quebrar');
 
+
+/* ---- rotina hora a hora ---- */
+{
+  const p = D.novoPerfil('Linha');
+  p.cfg.acorda = '07:00';
+  p.listas.habitos = [
+    { id: 'a', pilar: 'gym', nome: 'Treino', hora: '19:45' },
+    { id: 'b', pilar: 'diet', nome: 'Lanche', hora: '16:00' },
+    { id: 'c', pilar: 'fin', nome: 'Gastos' },
+    { id: 'd', pilar: 'est', nome: 'Madrugada', hora: '00:30' },
+  ];
+  p.listas.materias = [{ id: 'm', nome: 'SO', dias: [0, 1, 2, 3, 4, 5, 6], inicio: '08:30', fim: '11:00' }];
+  const grupos = Di.gruposDeRefeicao([{ id: 'r1', grupo: 'alm', nome: 'Almoço 1', hora: '12:00' },
+    { id: 'r2', grupo: 'alm', nome: 'Almoço 2', hora: '12:00' }]);
+  const { itens, semHora } = D.linhaDoDia(p, hoje, grupos);
+  assert.deepEqual(itens.map(i => i.nome), ['Acorda', 'SO', 'Almoço', 'Lanche', 'Treino', 'Madrugada', 'Dorme'],
+    'o dia vai de acordar a dormir, e a madrugada fica no fim, não no começo');
+  assert.equal(itens.at(-1).hora, '23:00', 'dorme 8 horas antes de acordar');
+  assert.deepEqual(semHora.map(h => h.nome), ['Gastos'], 'hábito sem hora vai pra fora da linha');
+  assert.equal(D.linhaDoDia({ ...p, modo: 'ferias' }, hoje, grupos).itens.some(i => i.tipo === 'aula'), false,
+    'semana sem aula não mostra aula');
+  assert.equal(D.emHora(D.dormeMin({ cfg: { acorda: '05:30' } })), '21:30');
+  assert.equal(D.acordaMin({ cfg: {} }), 7 * 60, 'perfil antigo sem acorda cai no padrão');
+  const em = (h, m) => { const d = new Date(); d.setHours(h, m, 0, 0); return d; };
+  assert.equal(itens[D.itemDeAgora(p, itens, em(16, 10))].nome, 'Lanche');
+  assert.equal(itens[D.itemDeAgora(p, itens, em(7, 2))].nome, 'Acorda');
+  assert.equal(itens[D.itemDeAgora(p, itens, em(23, 30))].nome, 'Dorme');
+  assert.equal(itens[D.itemDeAgora(p, itens, em(1, 0))].nome, 'Dorme', 'madrugada ainda é a noite de ontem');
+}
+
+/* ---- progresso ---- */
+{
+  const p = D.novoPerfil('Prog');
+  p.cfg.metaDia = 70;
+  p.listas.habitos = [{ id: 'x', pilar: 'gym', nome: 'X' }, { id: 'y', pilar: 'diet', nome: 'Y' }];
+  assert.equal(D.primeiroDia(p), null);
+  assert.equal(D.melhorSequencia(p), 0);
+  assert.deepEqual(D.placarHabitos(p), [], 'sem histórico não inventa placar');
+  const k = n => D.maisDias(hoje, -n);
+  p.dias = {
+    [k(6)]: { x: 'sim', y: 'sim' }, [k(5)]: { x: 'sim', y: 'sim' }, [k(4)]: { x: 'sim', y: 'sim' },
+    [k(3)]: { x: 'sim', y: 'nao' },  // 50%: quebra
+    /* k(2) em branco: conta como zero */
+    [k(1)]: { x: 'sim', y: 'sim' },
+  };
+  assert.equal(D.primeiroDia(p), k(6));
+  assert.equal(D.pctHistorico(p, k(7)), null, 'antes do primeiro dia não conta');
+  assert.equal(D.pctHistorico(p, k(2)), 0, 'dia em branco depois de começar é zero');
+  assert.equal(D.melhorSequencia(p), 3);
+  const r = D.resumoDias(p, 7);
+  assert.equal(r.contados, 6, 'hoje em aberto fica de fora');
+  assert.equal(r.bons, 4);
+  assert.equal(r.media, Math.round((100 * 4 + 50 + 0) / 6));
+  const pl = D.placarHabitos(p, 7);
+  assert.equal(pl[0].h.id, 'y', 'o mais furado vem primeiro');
+  assert.deepEqual([pl[0].sim, pl[0].vale], [4, 6]);
+  assert.deepEqual([pl[1].sim, pl[1].vale], [5, 6]);
+}
+
 console.log('ok — todas as regras do Ritmo passaram');

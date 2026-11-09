@@ -19,7 +19,7 @@ try {
   const nada = () => {};
   const acoes = {
     marcar: nada, toggleExtra: nada, setExtra: nada, go: nada, addTx: nada,
-    setCampo: nada, setCfg: nada, reiniciarCiclo: nada, apagarPerfil: nada, gerir: nada,
+    setCampo: nada, setCfg: nada, setAcorda: nada, reiniciarCiclo: nada, apagarPerfil: nada, gerir: nada,
     importarPlano: nada, importarDieta: nada,
     setJoelho: nada, setVolta: nada, addTeste: nada,
   };
@@ -157,6 +157,16 @@ try {
   assert.equal(naTela(comRotina), D.habitosDoDia(comRotina, hoje).length,
     'a tela mostra exatamente os hábitos que valem hoje');
   console.log('ok — a rotina respeita dia da semana e modo');
+
+
+  // rotina hora a hora e progresso
+  const rotLinha = texto(renderToString(h(TELAS.rotina, { s: comRotina, a: acoes })));
+  assert.ok(rotLinha.includes('Acorda') && rotLinha.includes('Dorme'), 'a rotina mostra acordar e dormir');
+  const progVazio = texto(renderToString(h(TELAS.progresso, { s: vazio, a: acoes })));
+  assert.ok(progVazio.includes('Nada pra mostrar ainda'), 'progresso vazio não inventa número');
+  const progCheio = texto(renderToString(h(TELAS.progresso, { s: cheio, a: acoes })));
+  assert.ok(progCheio.includes('Hábito por hábito') && progCheio.includes('semanas'), 'progresso com histórico');
+  console.log('ok — rotina hora a hora e progresso');
 
   // Ajustes oferece o .ics quando há hábito com horário, e some quando não há
   const ajRotina = texto(renderToString(h(TELAS.ajustes, { s: comRotina, a: acoes })));

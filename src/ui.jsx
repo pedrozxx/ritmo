@@ -31,6 +31,7 @@ const ICONS = {
   fin: <><rect x="3" y="6" width="18" height="13" rx="3.5" /><path d="M3 10.5h18" /><circle cx="16.8" cy="14.8" r="1.2" /></>,
   metas: <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" /><circle cx="12" cy="12" r=".6" /></>,
   ajustes: <><path d="M4 7.5h8M17.5 7.5H20M4 16.5h3M12.5 16.5H20" /><circle cx="14.5" cy="7.5" r="2.4" /><circle cx="9.5" cy="16.5" r="2.4" /></>,
+  progresso: <path d="M4 20h16M7 16.5v-4M12 16.5V7.5M17 16.5v-7" />,
   menu: <path d="M4 7h16M4 12h16M4 17h10" />,
   mais: <path d="M12 5v14M5 12h14" />,
   chama: <path d="M12 3c3 4 5 5.5 5 9a5 5 0 01-10 0c0-1.3.4-2.3 1.2-3.3.6 1.3 1.4 1.8 2.3 1.8 0-2.5-.5-5 1.5-7.5z" />,

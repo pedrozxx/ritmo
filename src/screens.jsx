@@ -14,7 +14,7 @@ import NOMES_OPENGYM from './nomes-opengym.json';
 import PLANO_TREINO from './plano-treino.json';
 import PLANO_DIETA from './plano-dieta.json';
 import PLANO_ROTINA from './plano-rotina.json';
-import { Card, CARD, Ring, Barra, Habito, Check, Pill, Ico, Numero, Vazio, MOLA_CALMA } from './ui.jsx';
+import { Card, CARD, Ring, Barra, Habito, Check, Pill, Ico, Numero, Vazio, Yn, MOLA_CALMA } from './ui.jsx';
 
 /* cabeçalho de card com o botão que abre o editor daquela lista */
 const Head = ({ titulo, chave, filtro, rotulo, a, extra }) => (
@@ -356,62 +356,282 @@ function Percurso({ s, a }) {
 }
 
 /* ================= Rotina ================= */
+/* O dia inteiro numa linha só, da hora de acordar até a de dormir: hábitos,
+   refeições e aula no mesmo relógio. Cada hábito é Sim / Não, cada refeição
+   é um check; aula e os horários de sono são só referência. */
+const TIPO_TL = {
+  acorda: 'sono', dorme: 'sono', aula: 'aula', refeicao: 'diet',
+};
 function Rotina({ s, a }) {
   const [dia, setDia] = useState(D.iso());
   const resp = s.dias[dia] || {};
+  const ex = D.extraDoDia(s, dia);
   const hoje = dia === D.iso();
+  const grupos = Di.gruposDeRefeicao(s.listas.refeicoes);
+  const { itens, semHora } = D.linhaDoDia(s, dia, grupos);
+  const agora = hoje ? D.itemDeAgora(s, itens) : -1;
+  const habitos = D.habitosDoDia(s, dia);
+  const respondidos = habitos.filter(h => resp[h.id]).length;
+  const pct = D.pctDoDia(s, dia);
+  const refeicoes = itens.filter(it => it.tipo === 'refeicao');
+  const refFeitas = refeicoes.filter(it => it.g.opcoes.some(r => ex['rf' + r.id])).length;
+  const acorda = D.emHora(D.acordaMin(s));
+  const dorme = D.emHora(D.dormeMin(s));
+  const nadaCadastrado = !s.listas.habitos.length && !grupos.length;
+
+  /* marcar a refeição pela rotina marca a primeira opção; desmarcar tira
+     qualquer opção que estivesse marcada, seja qual for */
+  const marcarRefeicao = g => {
+    const marcadas = g.opcoes.filter(r => ex['rf' + r.id]);
+    if (marcadas.length) marcadas.forEach(r => a.toggleExtra('rf' + r.id, dia));
+    else a.toggleExtra('rf' + g.opcoes[0].id, dia);
+  };
+
+  const detalhe = it => {
+    if (it.tipo === 'acorda') return 'Mesmo horário todo dia. Abre a janela e bebe um copo de água.';
+    if (it.tipo === 'dorme') return `8 horas antes de acordar. Tela desligada às ${D.emHora((D.dormeMin(s) - 30 + D.DIA_MIN) % D.DIA_MIN)}.`;
+    if (it.tipo === 'aula') return `Até ${D.emHora(it.ate)}`;
+    if (it.tipo === 'refeicao') {
+      const o = it.g.opcoes;
+      return o.length > 1 ? `${o.length} opções · escolha na Dieta` : (o[0].o || '');
+    }
+    return [D.pilar(it.h.pilar)?.nome, it.h.meta].filter(Boolean).join(' · ');
+  };
+
   return (
     <>
       <Card>
-        <div className="card-head">
-          <h2>{D.rotuloData(dia)}</h2>
-          {!hoje && <Pill t={D.dataCurta(dia)} cor="lilac" />}
-          {!hoje && <button className="more" onClick={() => setDia(D.iso())}>Voltar pra hoje</button>}
+        <div className="today">
+          <Ring pct={pct} sub={hoje ? 'do dia' : D.dataCurta(dia)} />
+          <div className="today-txt">
+            <h2>{D.rotuloData(dia)}</h2>
+            <p>
+              {habitos.length
+                ? `${respondidos} de ${habitos.length} respondidos`
+                : 'Nenhum hábito vale neste dia'}
+              {refeicoes.length > 0 && ` · ${refFeitas} de ${refeicoes.length} refeições`}
+            </p>
+            <div className="horas-sono">
+              <label className="hora-chip">
+                <span>Acorda</span>
+                <input type="time" value={acorda} aria-label="Hora de acordar"
+                  onChange={e => a.setAcorda(e.target.value)} />
+              </label>
+              <span className="hora-chip fixo"><span>Dorme</span><b className="num">{dorme}</b></span>
+            </div>
+          </div>
+        </div>
+        <div className="sep" />
+        <div className="seg" role="group" aria-label="Semana com ou sem aula">
+          {D.MODOS_SEMANA.map(([v, t]) => (
+            <button key={v} aria-pressed={(s.modo || 'aula') === v} onClick={() => a.setCampo('modo', v)}>
+              {(s.modo || 'aula') === v && <motion.span className="seg-thumb" layoutId="seg-modo-rotina" transition={MOLA_CALMA} />}
+              {t}
+            </button>
+          ))}
         </div>
         <EscolheDia dia={dia} onMuda={setDia} />
         <p className="nota" style={{ marginBottom: 0 }}>
           {hoje
-            ? 'Responda Sim ou Não em cada item. O que fica sem resposta não conta como falha, só como pendente.'
-            : 'Você está respondendo um dia que já passou. Serve pra consertar o que ficou em branco.'}
+            ? 'O que fica sem resposta não conta como falha, só como pendente.'
+            : <>Você está respondendo um dia que já passou. <button className="link" style={{ display: 'inline' }}
+                onClick={() => setDia(D.iso())}>Voltar pra hoje</button></>}
         </p>
       </Card>
-      {D.PILARES.map(pl => {
-        /* o checklist é do dia escolhido: hábito de outro dia da semana não
-           aparece aqui, mas continua existindo e editável pelo "Editar" */
-        const itens = D.habitosDoPilarNoDia(s, pl.id, dia);
-        const noPilar = D.habitosDo(s, pl.id).length;
-        return (
-          <Card key={pl.id}>
-            <div className="card-head">
-              <h2><Ico n={pl.icon} s={17} /> {pl.nome}</h2>
-              {itens.length > 0 && (
-                <Pill t={`${itens.filter(i => resp[i.id] === 'sim').length}/${itens.length}`}
-                  cor={D.pctPilar(resp, itens) === 100 ? 'ok' : 'neutral'} />
-              )}
-              <button className="more" onClick={() => a.gerir('habitos', { pilar: pl.id }, `Hábitos de ${pl.nome}`)}>
-                Editar
-              </button>
-            </div>
-            {itens.length === 0
-              ? noPilar > 0
-                ? (
-                  <div className="row alto" style={{ borderTop: 0 }}>
-                    <div className="row-txt">
-                      <b>Nada {hoje ? 'hoje' : 'neste dia'}</b>
-                      <span>Os {noPilar} hábitos de {pl.nome.toLowerCase()} são de outros dias da semana.</span>
-                    </div>
-                  </div>
-                )
-                : <Convite a={a} chave="habitos" filtro={{ pilar: pl.id }} titulo={`Hábitos de ${pl.nome}`}
-                  rotulo={`Criar hábito de ${pl.nome}`} texto={`Nenhum hábito de ${pl.nome.toLowerCase()} ainda.`} />
-              : (
-                <div className="habits">
-                  {itens.map(h => <Habito key={h.id} h={h} estado={resp[h.id]} onPick={v => a.marcar(h.id, v, dia)} />)}
-                </div>
-              )}
+
+      {nadaCadastrado
+        ? (
+          <Card>
+            <Convite a={a} chave="habitos" filtro={{ pilar: 'gym' }} titulo="Hábitos de Academia"
+              rotulo="Criar o primeiro hábito"
+              texto=" Crie hábitos com horário e eles entram aqui, na ordem do relógio. O plano pronto do Pedro está em Ajustes." />
           </Card>
-        );
-      })}
+        )
+        : (
+          <Card>
+            <div className="card-head"><h2>Rotina do dia</h2><span className="more">Sim · Não</span></div>
+            <ol className="tl">
+              {itens.map((it, i) => {
+                const estado = it.tipo === 'habito' ? resp[it.id] : undefined;
+                const feita = it.tipo === 'refeicao' && it.g.opcoes.some(r => ex['rf' + r.id]);
+                return (
+                  <li key={it.id} className={`tl-i t-${TIPO_TL[it.tipo] || it.h?.pilar || ''} ${i === agora ? 'now' : ''} ${feita || estado === 'sim' ? 'did' : ''}`}
+                    data-state={estado || ''}>
+                    <time className="num">{it.hora}</time>
+                    <span className="tl-dot" aria-hidden="true" />
+                    <div className="tl-b">
+                      <div className="tl-h">
+                        <b>{it.nome}</b>
+                        {i === agora && <Pill t="Agora" cor="lilac" />}
+                      </div>
+                      {detalhe(it) && <span>{detalhe(it)}</span>}
+                    </div>
+                    {it.tipo === 'habito' && <Yn estado={estado} label={it.nome} onPick={v => a.marcar(it.id, v, dia)} />}
+                    {it.tipo === 'refeicao' && <Check on={feita} label={it.nome} onClick={() => marcarRefeicao(it.g)} />}
+                  </li>
+                );
+              })}
+            </ol>
+          </Card>
+        )}
+
+      {semHora.length > 0 && (
+        <Card>
+          <div className="card-head"><h2>Sem horário</h2><span className="more">qualquer hora do dia</span></div>
+          <div className="habits">
+            {semHora.map(h => <Habito key={h.id} h={h} estado={resp[h.id]} onPick={v => a.marcar(h.id, v, dia)} />)}
+          </div>
+          <p className="nota">Preencha o Horário do hábito pra ele entrar na linha do dia.</p>
+        </Card>
+      )}
+
+      <Card>
+        <div className="card-head"><h2>Editar a rotina</h2></div>
+        <div className="chips" style={{ margin: 0 }}>
+          {D.PILARES.map(pl => (
+            <motion.button key={pl.id} className="chip" whileTap={{ scale: .94 }}
+              onClick={() => a.gerir('habitos', { pilar: pl.id }, `Hábitos de ${pl.nome}`)}>
+              {pl.nome} · {D.habitosDo(s, pl.id).length}
+            </motion.button>
+          ))}
+          <motion.button className="chip" whileTap={{ scale: .94 }} onClick={() => a.go('dieta')}>Refeições</motion.button>
+        </div>
+        <p className="nota">Hábito de outro dia da semana ou do outro modo de semana não aparece na linha, mas continua aqui.</p>
+      </Card>
+    </>
+  );
+}
+
+/* ================= Progresso ================= */
+const SEMANAS_CAL = 12;
+const fillDe = (pct, meta) => (pct === null ? 'none' : pct >= meta ? 'full' : pct > 0 ? 'part' : 'miss');
+function Progresso({ s, a }) {
+  const hoje = D.iso();
+  const meta = s.cfg.metaDia;
+  const seq = D.sequencia(s);
+  const melhor = D.melhorSequencia(s);
+  const r7 = D.resumoDias(s, 7);
+  const r30 = D.resumoDias(s, 30);
+  const [todos, setTodos] = useState(false);
+
+  if (!D.primeiroDia(s)) {
+    return (
+      <Card>
+        <Vazio titulo="Nada pra mostrar ainda"
+          texto=" O progresso começa no primeiro dia em que você responder a rotina. Dali pra frente cada dia entra aqui." />
+        <button className="btn-primary" onClick={() => a.go('rotina')}>Abrir a rotina de hoje</button>
+      </Card>
+    );
+  }
+
+  /* calendário: 12 semanas de segunda a domingo, terminando nesta */
+  const seg = D.maisDias(hoje, -D.diaIdx(hoje));
+  const inicioCal = D.maisDias(seg, -7 * (SEMANAS_CAL - 1));
+  const dias = D.historico(s, D.diasEntre(inicioCal, hoje) + 1);
+  const futuro = Array.from({ length: 6 - D.diaIdx(hoje) }, (_, i) => ({ k: D.maisDias(hoje, i + 1), pct: null, fut: true }));
+  const placar = D.placarHabitos(s, 30);
+  /* pilar conta só desde o primeiro dia: antes disso não é falha */
+  const diasDesde = Math.min(30, D.diasEntre(D.primeiroDia(s), hoje) + 1);
+  const furados = todos ? placar : placar.slice(0, 5);
+  const semanas = D.historico(s, 7 * 8).reduce((acc, d, i) => {
+    const w = Math.floor(i / 7);
+    (acc[w] = acc[w] || []).push(d);
+    return acc;
+  }, []).map(w => {
+    const c = w.filter(d => d.pct !== null && !(d.k === hoje && d.pct < meta));
+    return c.length ? Math.round(c.reduce((t, d) => t + d.pct, 0) / c.length) : null;
+  });
+
+  return (
+    <>
+      <Card>
+        <div className="today">
+          <Ring pct={r7.media} sub="7 dias" />
+          <div className="today-txt">
+            {r7.contados
+              ? <>
+                <h2>{r7.bons} de {r7.contados} {r7.contados === 1 ? 'dia' : 'dias'} em pé</h2>
+                <p>Nos últimos 7 dias. Em 30, média de {r30.media}% e {r30.bons} {r30.bons === 1 ? 'dia' : 'dias'} com {meta}% ou mais.</p>
+              </>
+              : <>
+                <h2>Primeiro dia</h2>
+                <p>Hoje fica em aberto até bater {meta}%. A partir de amanhã os números começam a andar.</p>
+              </>}
+          </div>
+        </div>
+        <div className="flow" style={{ marginTop: 14 }}>
+          <div><span className="label">Sequência</span><b>{seq} {seq === 1 ? 'dia' : 'dias'}</b></div>
+          <div><span className="label">Melhor</span><b>{melhor} {melhor === 1 ? 'dia' : 'dias'}</b></div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="card-head"><h2>Últimas {SEMANAS_CAL} semanas</h2><span className="more">meta de {meta}%</span></div>
+        <div className="cal-dias">{D.DIAS_SEMANA.map(d => <span key={d}>{d[0]}</span>)}</div>
+        <div className="cal">
+          {[...dias, ...futuro].map(d => (
+            <span key={d.k} data-fill={d.fut ? 'fut' : fillDe(d.pct, meta)} className={d.k === hoje ? 'hoje' : ''}
+              title={`${D.dataCurta(d.k)}${d.pct === null ? '' : ` · ${d.pct}%`}`} />
+          ))}
+        </div>
+        <div className="legenda">
+          <span><i data-fill="full" />{meta}% ou mais</span>
+          <span><i data-fill="part" />abaixo</span>
+          <span><i data-fill="miss" />zero</span>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="card-head"><h2>Média por semana</h2><span className="more">últimas 8</span></div>
+        <div className="barras-sem" role="img" aria-label="Média da rotina por semana nas últimas 8 semanas">
+          {semanas.map((v, i) => (
+            <div key={i} className="bs">
+              <span className="num">{v === null ? '·' : v}</span>
+              <div className="bs-col">
+                <motion.i data-fill={fillDe(v, meta)} initial={{ scaleY: 0 }} animate={{ scaleY: v === null ? 0 : Math.max(.03, v / 100) }}
+                  transition={{ duration: .7, ease: [.22, 1, .36, 1], delay: .1 + i * .04 }} />
+              </div>
+              <b>{i === semanas.length - 1 ? 'esta' : `-${semanas.length - 1 - i}`}</b>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <div className="card-head"><h2>Por pilar</h2><span className="more">{diasDesde === 30 ? '30 dias' : `desde ${D.dataCurta(D.primeiroDia(s))}`}</span></div>
+        <div className="bars">
+          {D.PILARES.map((pl, i) => {
+            const ad = D.aderenciaPilar(s, pl.id, diasDesde);
+            if (!ad.n) return null;
+            return (
+              <div className="bar-row" key={pl.id}>
+                <span>{pl.nome}</span><span className="v">{ad.bons}/{ad.n} dias</span>
+                <Barra pct={ad.pct} rosa={ad.pct < 60} atraso={i * .05} />
+              </div>
+            );
+          })}
+        </div>
+        <p className="nota">Um dia conta pro pilar quando 75% dos hábitos dele foram Sim.</p>
+      </Card>
+
+      {placar.length > 0 && (
+        <Card>
+          <div className="card-head"><h2>Hábito por hábito</h2><span className="more">do mais furado</span></div>
+          <div className="bars">
+            {furados.map((x, i) => (
+              <div className="bar-row" key={x.h.id}>
+                <span>{x.h.nome}</span><span className="v">{x.sim}/{x.vale}</span>
+                <Barra pct={x.pct} rosa={x.pct < 60} atraso={i * .04} />
+              </div>
+            ))}
+          </div>
+          {placar.length > 5 && (
+            <button className="link" style={{ marginTop: 12 }} onClick={() => setTodos(v => !v)}>
+              {todos ? 'Mostrar só os 5 mais furados' : `Ver os ${placar.length} hábitos`}
+            </button>
+          )}
+        </Card>
+      )}
     </>
   );
 }
@@ -1708,6 +1928,6 @@ function ConfirmaDuasVezes({ rotulo, confirma, onOk }) {
 }
 
 export const TELAS = {
-  hoje: Hoje, percurso: Percurso, rotina: Rotina, academia: Academia, joelho: Joelho, dieta: Dieta,
+  hoje: Hoje, percurso: Percurso, rotina: Rotina, progresso: Progresso, academia: Academia, joelho: Joelho, dieta: Dieta,
   faculdade: Faculdade, estagio: Estagio, financeiro: Financeiro, metas: Metas, ajustes: Ajustes,
 };

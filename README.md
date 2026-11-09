@@ -18,7 +18,7 @@ npm run dev      # servidor local, acessível pela rede (--host)
 npm run deploy   # check + smoke + build e publica no GitHub Pages
 npm run build    # só gera o dist/
 npm run check    # regras: rotina, sequência, ciclo, dieta, dinheiro, metas, CRUD
-npm run smoke    # renderiza as 10 telas e os 9 editores em Node
+npm run smoke    # renderiza as 12 telas e os editores em Node
 npm run icons    # regera os ícones do app
 ```
 
@@ -63,6 +63,19 @@ são todos seus.
 | Média da faculdade | Média das notas das matérias cadastradas. |
 | Horas de estágio | Soma das horas lançadas em cada dia da semana. |
 | Saldo | Entradas − saídas do mês corrente. |
+
+## Rotina e Progresso
+
+A **Rotina** é o dia inteiro numa linha só, como no Volta ao Campo: começa na hora de
+acordar (editável no topo da tela), passa pelos hábitos com horário, refeições e aulas
+na ordem do relógio, e termina na hora de dormir, que sai 8 horas antes de acordar.
+Hábito é Sim / Não, refeição é um check (o mesmo da Dieta), aula e sono são só
+referência. O item de agora fica marcado. Hábito sem horário vai num card separado.
+
+O **Progresso** mostra a média dos últimos 7 e 30 dias, a sequência atual e a melhor,
+as últimas 12 semanas dia a dia, a média por semana, cada pilar e cada hábito do mais
+furado pro mais firme. O histórico começa no primeiro dia com resposta: antes disso
+nada conta, e depois dele dia em branco conta como zero.
 
 ## O percurso de 90 dias
 
