@@ -122,15 +122,19 @@ export default function App() {
       setS(p => {
         const dia = { ...(p.dias[k] || {}) };
         if (v === null) delete dia[id]; else dia[id] = v;
-        return { ...p, dias: { ...p.dias, [k]: dia } };
+        /* a hora do toque vai junto, sem pedir: só pra hoje */
+        return { ...p, dias: { ...p.dias, [k]: dia }, extra: D.comMarcaDeHora(p.extra, k, id, v !== null) };
       });
     },
     /* marcações do dia que não são hábito: refeições, água, exercícios, horas */
     toggleExtra: (chave, k = D.iso()) => setS(p => {
       const e = { ...(p.extra[k] || {}) };
       e[chave] = !e[chave];
-      return { ...p, extra: { ...p.extra, [k]: e } };
+      const extra = { ...p.extra, [k]: e };
+      return { ...p, extra: chave.startsWith('rf') ? D.comMarcaDeHora(extra, k, chave, e[chave]) : extra };
     }),
+    /* acordar, dormir e sair: a hora de verdade, com o plano do dia junto */
+    setHoraReal: (k, tipo, real, plano) => setS(p => ({ ...p, extra: D.comHoraReal(p.extra, k, tipo, real, plano) })),
     setExtra: (chave, valor, k = D.iso()) =>
       setS(p => ({ ...p, extra: { ...p.extra, [k]: { ...(p.extra[k] || {}), [chave]: valor } } })),
     go: t => { setTela(t); setMenu(false); },

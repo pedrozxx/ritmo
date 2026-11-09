@@ -392,7 +392,25 @@ function Rotina({ s, a }) {
     else a.toggleExtra('rf' + g.opcoes[0].id, dia);
   };
 
+  /* Acordar, dormir e sair: a hora real. Dormir anotado de madrugada é da
+     noite de ontem, então vai pro dia anterior. */
+  const madrugada = hoje && (() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes() < D.acordaMin(s, dia); })();
+  const diaDoRegistro = it => (it.tipo === 'dorme' && madrugada ? D.maisDias(dia, -1) : dia);
+  const planoDe = it => (it.tipo === 'dorme' && madrugada ? D.dormeMin(s, D.maisDias(dia, -1)) : it.min);
+  const regDe = it => (D.TIPOS_HORA.includes(it.tipo) && (it.tipo !== 'saida' || it.id === 'saida0')
+    ? { reg: D.horaReal(s, diaDoRegistro(it), it.tipo) } : null);
+  const anotar = (it, real) => a.setHoraReal(diaDoRegistro(it), it.tipo, real, planoDe(it));
+  const textoDesvio = r => {
+    const d = D.desvio(r);
+    if (Math.abs(d) <= D.NO_HORARIO) return 'no horário';
+    const m = Math.abs(d);
+    const q = m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m} min`;
+    return d > 0 ? `${q} depois do plano` : `${q} antes do plano`;
+  };
+
   const detalhe = it => {
+    const rg = regDe(it)?.reg;
+    if (rg) return `Real ${rg.real} · ${textoDesvio(rg)}.`;
     if (it.tipo === 'acorda') {
       return it.cedo
         ? `${it.cedo.tipo === 'aula' ? 'A aula' : 'O estágio'} começa às ${D.emHora(it.cedo.de)} e a saída é às ${D.emHora((it.cedo.saida + D.DIA_MIN) % D.DIA_MIN)}. Pra ter ${D.PREPARO_MIN} min antes de sair, acorde às ${D.emHora(it.cedo.sugestao)}.`
@@ -417,12 +435,15 @@ function Rotina({ s, a }) {
         return `Na faculdade · chega às ${it.hora} e a aula começa às ${D.emHora(it.aperto.de)}, `
           + 'então o almoço come o começo da aula.';
       }
-      return it.onde ? `${it.onde[0].toUpperCase()}${it.onde.slice(1)} · ${oque}` : oque;
+      const quando = it.g.opcoes.map(r => D.marcadoAs(s, dia, 'rf' + r.id)).find(Boolean);
+      const base = it.onde ? `${it.onde[0].toUpperCase()}${it.onde.slice(1)} · ${oque}` : oque;
+      return quando ? `${base} · marcado às ${quando}` : base;
     }
     const ancora = it.direto
       ? `direto do estágio, que acaba às ${D.emHora(it.direto.ate)} · chega às ${D.emHora(it.chegada)}, aula às ${D.emHora(it.ancorado.de)}`
       : it.ancorado && `${it.antes} min antes ${it.ancorado.tipo === 'aula' ? `da aula das ${D.emHora(it.ancorado.de)}` : `do estágio das ${D.emHora(it.ancorado.de)}`}`;
-    return [D.pilar(it.h.pilar)?.nome, ancora || it.h.meta].filter(Boolean).join(' · ');
+    const quando = D.marcadoAs(s, dia, it.id);
+    return [D.pilar(it.h.pilar)?.nome, ancora || it.h.meta, quando && `marcado às ${quando}`].filter(Boolean).join(' · ');
   };
 
   return (
@@ -487,8 +508,9 @@ function Rotina({ s, a }) {
               {itens.map((it, i) => {
                 const estado = it.tipo === 'habito' ? resp[it.id] : undefined;
                 const feita = it.tipo === 'refeicao' && it.g.opcoes.some(r => ex['rf' + r.id]);
+                const rh = regDe(it);
                 return (
-                  <li key={it.id} className={`tl-i t-${TIPO_TL[it.tipo] || it.h?.pilar || ''} ${i === agora ? 'now' : ''} ${feita || estado === 'sim' ? 'did' : ''}`}
+                  <li key={it.id} className={`tl-i t-${TIPO_TL[it.tipo] || it.h?.pilar || ''} ${i === agora ? 'now' : ''} ${feita || estado === 'sim' || rh?.reg ? 'did' : ''}`}
                     data-state={estado || ''}>
                     <time className="num">{it.hora}</time>
                     <span className="tl-dot" aria-hidden="true" />
@@ -506,6 +528,15 @@ function Rotina({ s, a }) {
                     </div>
                     {it.tipo === 'habito' && <Yn estado={estado} label={it.nome} onPick={v => a.marcar(it.id, v, dia)} />}
                     {it.tipo === 'refeicao' && <Check on={feita} label={it.nome} onClick={() => marcarRefeicao(it.g)} />}
+                    {rh && (rh.reg
+                      ? <input type="time" className="hora-real num" value={rh.reg.real} aria-label={`Hora real: ${it.nome}`}
+                          onChange={e => anotar(it, e.target.value || null)} />
+                      : (
+                        <motion.button className="hora-btn" whileTap={{ scale: .94 }}
+                          onClick={() => anotar(it, hoje ? D.agoraHHMM() : D.emHora(planoDe(it)))}>
+                          {hoje ? 'Agora' : 'Anotar'}
+                        </motion.button>
+                      ))}
                   </li>
                 );
               })}
@@ -672,6 +703,27 @@ function Progresso({ s, a }) {
         </div>
         <p className="nota">Um dia conta pro pilar quando 75% dos hábitos dele foram Sim.</p>
       </Card>
+
+      {D.TIPOS_HORA.some(tp => D.resumoHoras(s, tp)) && (
+        <Card>
+          <div className="card-head"><h2>Horário real</h2><span className="more">14 dias</span></div>
+          {D.TIPOS_HORA.map(tp => {
+            const r = D.resumoHoras(s, tp);
+            if (!r) return null;
+            const nome = { acorda: 'Acordar', saida: 'Sair pro estágio', dorme: 'Dormir' }[tp];
+            const m = Math.abs(r.medio);
+            const media = m <= D.NO_HORARIO ? 'em média no horário'
+              : `em média ${m} min ${r.medio > 0 ? 'depois' : 'antes'} do plano`;
+            return (
+              <div className="row" key={tp}>
+                <div className="row-txt"><b>{nome}</b><span>{media} · {r.anotados} de {r.n} dias anotados</span></div>
+                <Pill t={`${r.noHorario}/${r.anotados} no horário`} cor={r.noHorario / r.anotados >= .8 ? 'ok' : r.noHorario / r.anotados >= .5 ? 'lilac' : 'warn'} />
+              </div>
+            );
+          })}
+          <p className="nota">No horário é até {D.NO_HORARIO} min pra mais ou pra menos. Anota na Rotina, no Acorda, no Sai pro estágio e no Dorme.</p>
+        </Card>
+      )}
 
       {placar.length > 0 && (
         <Card>

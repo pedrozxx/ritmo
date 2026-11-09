@@ -433,3 +433,9 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;-webki
 .bs-col i{display:block;width:100%;height:100%;border-radius:8px;transform-origin:bottom;background:var(--lilac-3)}
 .bs-col i[data-fill="full"]{background:var(--accent-fill)}
 .bs-col i[data-fill="miss"]{background:var(--rose-2)}
+
+/* hora real: acordar, sair e dormir */
+.hora-btn{padding:7px 13px;border-radius:999px;background:var(--lilac-soft);color:var(--lilac);font-size:12.5px;font-weight:700;white-space:nowrap}
+.hora-real{font:inherit;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--on-accent);background:var(--accent-fill);
+  border:0;border-radius:999px;padding:6px 10px;min-width:0;max-width:92px}
+.hora-real::-webkit-calendar-picker-indicator{display:none}

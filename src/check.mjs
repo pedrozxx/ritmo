@@ -1122,4 +1122,38 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.equal(D.blocosDoDia(pb2, 0).length, 2, 'lista nova, conta nova');
 }
 
+
+/* ---- hora real e hora do toque ---- */
+{
+  const agora = new Date(hoje + 'T10:42:00');
+  let ex = D.comMarcaDeHora({}, hoje, 'h1', true, agora);
+  assert.equal(ex[hoje].t.h1, '10:42', 'toque de hoje guarda a hora');
+  assert.equal(D.comMarcaDeHora(ex, D.maisDias(hoje, -1), 'h1', true, agora), ex, 'dia passado não inventa hora');
+  ex = D.comMarcaDeHora(ex, hoje, 'h1', false, agora);
+  assert.equal(ex[hoje].t.h1, undefined, 'desmarcar apaga a hora');
+
+  const p = D.novoPerfil('Hora');
+  p.extra = D.comHoraReal({}, hoje, 'acorda', '6:12', 6 * 60);
+  assert.deepEqual(D.horaReal(p, hoje, 'acorda'), { real: '06:12', plano: '06:00' });
+  assert.equal(D.desvio({ real: '00:30', plano: '22:00' }), 150, 'dormir depois da meia-noite');
+  assert.equal(D.desvio({ real: '21:50', plano: '22:00' }), -10);
+  p.extra = D.comHoraReal(p.extra, D.maisDias(hoje, -1), 'acorda', '06:05', 6 * 60);
+  p.extra = D.comHoraReal(p.extra, D.maisDias(hoje, -2), 'acorda', '06:40', 6 * 60);
+  const r = D.resumoHoras(p, 'acorda');
+  assert.deepEqual([r.anotados, r.noHorario, r.medio], [3, 1, Math.round((12 + 5 + 40) / 3)]);
+  assert.equal(D.resumoHoras(p, 'dorme'), null, 'sem anotação, sem resumo');
+  p.extra = D.comHoraReal(p.extra, hoje, 'acorda', null, 0);
+  assert.equal(D.horaReal(p, hoje, 'acorda'), null, 'apagar a hora tira o registro');
+  // marcar refeição continua contando com o mapa de horas no mesmo dia
+  p.listas.refeicoes = [{ id: 'r', grupo: 'c', nome: 'Café' }];
+  p.extra[hoje] = { ...p.extra[hoje], rfr: true, t: { rfr: '07:30' } };
+  assert.equal(D.macrosDoDia(p).feitas, 1);
+  assert.equal(D.marcadoAs(p, hoje, 'rfr'), '07:30');
+
+  const pe = D.novoPerfil('Saida');
+  pe.cfg.trajetoEstagio = 60;
+  pe.listas.turnos = [{ id: 'e', nome: 'E', dias: [0, 1, 2, 3, 4, 5, 6], inicio: '07:00', fim: '13:00' }];
+  assert.equal(D.emHora(D.saidaPlanejada(pe, hoje)), '06:00');
+}
+
 console.log('ok — todas as regras do Ritmo passaram');

@@ -672,6 +672,52 @@ export function itemDeAgora(s, itens, agora = new Date()) {
   return idx;
 }
 
+/* ---- hora real ----
+   Todo toque guarda a hora em que foi feito (extra[k].t[id]), sem pedir
+   nada: é "marcado às", não "feito às". Acordar, dormir e sair pro estágio
+   pedem a hora de verdade (extra[k].h[tipo] = { real, plano }), porque ali a
+   hora é o próprio hábito. O plano vai junto: se o horário mudar depois, o
+   que era o plano naquele dia não muda. */
+export const TIPOS_HORA = ['acorda', 'saida', 'dorme'];
+export const agoraHHMM = (d = new Date()) => emHora(d.getHours() * 60 + d.getMinutes());
+export function comMarcaDeHora(extra, k, id, on, agora = new Date()) {
+  if (k !== iso(agora)) return extra;            // dia passado: não inventa hora
+  const e = { ...((extra || {})[k] || {}) };
+  const tt = { ...(e.t || {}) };
+  if (on) tt[id] = agoraHHMM(agora); else delete tt[id];
+  return { ...extra, [k]: { ...e, t: tt } };
+}
+export const marcadoAs = (s, k, id) => ((s.extra || {})[k]?.t || {})[id] || null;
+export const horaReal = (s, k, tipo) => ((s.extra || {})[k]?.h || {})[tipo] || null;
+export function comHoraReal(extra, k, tipo, real, plano) {
+  const e = { ...((extra || {})[k] || {}) };
+  const h = { ...(e.h || {}) };
+  if (real == null || emMinutos(real) == null) delete h[tipo];
+  else h[tipo] = { real: emHora(emMinutos(real)), plano: emHora(plano) };
+  return { ...extra, [k]: { ...e, h } };
+}
+/* diferença em minutos, de -12 h a +12 h: dormir 00:30 com plano 22:00 é +150 */
+export const desvio = r => {
+  const d = (emMinutos(r.real) - emMinutos(r.plano) + DIA_MIN) % DIA_MIN;
+  return d > DIA_MIN / 2 ? d - DIA_MIN : d;
+};
+export const NO_HORARIO = 10;   // até 10 min pra mais ou pra menos conta como no horário
+export function resumoHoras(s, tipo, n = 14, ref = iso()) {
+  const regs = Array.from({ length: n }, (_, i) => horaReal(s, maisDias(ref, -i), tipo)).filter(Boolean);
+  if (!regs.length) return null;
+  const ds = regs.map(desvio);
+  return {
+    anotados: regs.length, n,
+    medio: Math.round(ds.reduce((a, b) => a + b, 0) / ds.length),
+    noHorario: ds.filter(d => Math.abs(d) <= NO_HORARIO).length,
+  };
+}
+/* o plano da saída pro estágio num dia: começo do primeiro estágio menos o trajeto */
+export function saidaPlanejada(s, k) {
+  const b = blocosDoDia(s, diaIdx(k)).find(x => x.tipo === 'estagio');
+  return b ? (b.de - trajeto(s, 'estagio') + DIA_MIN) % DIA_MIN : null;
+}
+
 /* ---- progresso ----
    O histórico começa no primeiro dia com alguma resposta. Dali pra frente,
    dia sem resposta conta como zero: deixar de abrir o app também é furar. */

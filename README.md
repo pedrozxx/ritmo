@@ -101,6 +101,12 @@ Refeição conta no % do dia e no anel da Dieta como um item do pilar: marcada v
 "Sim", e Almoço 1 ou 2 resolvem o mesmo almoço. Ela só entra na conta a partir do
 primeiro dia em que alguma refeição foi marcada, pra não reescrever o histórico de antes.
 
+Todo toque de hoje guarda sozinho a hora em que foi feito ("marcado às", não "feito
+às"). Acordar, sair pro estágio e dormir pedem a hora real: "Agora" grava a hora do
+momento, e o campo corrige depois. O plano daquele dia vai junto, e o Progresso mostra a
+média de atraso e quantos dias foram no horário (até 10 min pra mais ou pra menos).
+Dormir anotado de madrugada conta pra noite anterior.
+
 O **Progresso** mostra a média dos últimos 7 e 30 dias, a sequência atual e a melhor,
 as últimas 12 semanas dia a dia, a média por semana, cada pilar e cada hábito do mais
 furado pro mais firme. O histórico começa no primeiro dia com resposta: antes disso

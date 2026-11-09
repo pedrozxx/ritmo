@@ -19,7 +19,7 @@ try {
   const nada = () => {};
   const acoes = {
     marcar: nada, toggleExtra: nada, setExtra: nada, go: nada, addTx: nada,
-    setCampo: nada, setCfg: nada, setAcorda: nada, setAcordaDia: nada, reiniciarCiclo: nada, apagarPerfil: nada, gerir: nada,
+    setCampo: nada, setCfg: nada, setAcorda: nada, setAcordaDia: nada, setHoraReal: nada, reiniciarCiclo: nada, apagarPerfil: nada, gerir: nada,
     importarPlano: nada, importarDieta: nada,
     setJoelho: nada, setVolta: nada, addTeste: nada,
   };
