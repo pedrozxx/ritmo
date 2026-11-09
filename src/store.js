@@ -830,6 +830,9 @@ export const AJUSTES_PEDIDOS = {
     { id: 'trajeto-ate-o-ponto', cfg: { trajetoEstagio: 60 } },
     /* a faculdade é na cidade de casa: do estágio até ela é o ônibus de volta */
     { id: 'faculdade-na-minha-cidade', cfg: { trajetoEstagioFac: 60 } },
+    /* terça e sexta: café 7h30 e almoço só às 14h, o lanche segura o meio */
+    { id: 'lanche-manha-estagio', habitos: [{ pilar: 'diet', nome: 'Lanche da manhã no estágio', hora: '10:30',
+      meta: 'fruta, iogurte ou sanduíche, levado de casa · segura até o almoço das 14h', dias: [1, 4], modo: '' }] },
     { id: 'refeicoes-dia-de-aula', refeicoes: { cafe: { ondeAula: 'estagio' }, almoco: { ondeAula: 'faculdade' } } },
   ],
 };
@@ -840,11 +843,15 @@ export function aplicarPedidos(id, s) {
   return novos.reduce((acc, x) => ({
     ...acc,
     cfg: { ...acc.cfg, ...(x.cfg || {}) },
-    listas: !x.refeicoes ? acc.listas : {
+    listas: !x.refeicoes && !x.habitos ? acc.listas : {
       ...acc.listas,
+      /* hábito novo entra uma vez; se já existe um com o mesmo nome, fica o dele */
+      habitos: [...(acc.listas.habitos || []), ...(x.habitos || [])
+        .filter(h => !(acc.listas.habitos || []).some(o => o.nome === h.nome))
+        .map(h => ({ ...h, id: novoId() }))],
       /* só preenche quem ainda não escolheu: não desfaz edição feita na mão */
       refeicoes: (acc.listas.refeicoes || []).map(r => {
-        const patch = x.refeicoes[r.grupo];
+        const patch = (x.refeicoes || {})[r.grupo];
         if (!patch) return r;
         return { ...r, ...Object.fromEntries(Object.entries(patch).filter(([k]) => !(k in r))) };
       }),

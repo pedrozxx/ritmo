@@ -999,4 +999,23 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.equal(D.trajetoEstagioFac({ cfg: { trajetoEstagioFac: 0, trajetoFaculdade: 25 } }), 25);
 }
 
+
+/* ---- lanche da manhã no estágio, terça e sexta ---- */
+{
+  const antes = { ...D.novoPerfil('Pedro'), aplicados: ['acorda-0600', 'trajeto-onibus', 'refeicoes-dia-de-aula',
+    'trajeto-ate-o-ponto', 'faculdade-na-minha-cidade'] };
+  antes.listas.habitos = [{ id: 'x', pilar: 'diet', nome: 'Lanche da tarde', hora: '16:00' }];
+  const p = D.aplicarPedidos('pedro', antes);
+  const l = p.listas.habitos.find(h => h.nome === 'Lanche da manhã no estágio');
+  assert.ok(l && l.id, 'entra com id');
+  assert.deepEqual(l.dias, [1, 4]);
+  assert.equal(p.listas.habitos.length, 2, 'não mexe nos outros');
+  assert.equal(D.aplicarPedidos('pedro', p), p, 'roda uma vez só');
+  const seg = D.maisDias(hoje, -D.diaIdx(hoje));
+  assert.ok(D.habitosDoDia(p, D.maisDias(seg, 1)).includes(l));
+  assert.ok(!D.habitosDoDia(p, D.maisDias(seg, 2)).includes(l), 'quarta não tem');
+  const jaTinha = { ...antes, listas: { ...antes.listas, habitos: [{ id: 'y', pilar: 'diet', nome: 'Lanche da manhã no estágio', hora: '10:00' }] } };
+  assert.equal(D.aplicarPedidos('pedro', jaTinha).listas.habitos.length, 1, 'não duplica');
+}
+
 console.log('ok — todas as regras do Ritmo passaram');

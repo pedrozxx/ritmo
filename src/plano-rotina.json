@@ -19,6 +19,17 @@
     },
     {
       "pilar": "diet",
+      "nome": "Lanche da manhã no estágio",
+      "hora": "10:30",
+      "meta": "fruta, iogurte ou sanduíche, levado de casa · segura até o almoço das 14h",
+      "dias": [
+        1,
+        4
+      ],
+      "modo": ""
+    },
+    {
+      "pilar": "diet",
       "nome": "Lanche da tarde",
       "hora": "16:00",
       "meta": "fruta e iogurte, ou sanduíche de frango ou ovo, levado de casa",
