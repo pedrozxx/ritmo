@@ -15,6 +15,7 @@ export function importarPlanoDieta(json) {
     prot: r.prot ?? '',
     kcal: r.kcal ?? '',
     obs: r.obs || '',
+    ondeAula: r.ondeAula || '',
     /* o campo de texto que o esquema antigo já tinha, pra lista e editor */
     o: (r.itens || []).map(it => it.nome).join(', '),
     itens: (r.itens || []).map(it => ({

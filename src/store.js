@@ -65,6 +65,10 @@ export const SCHEMAS = {
     { k: 'hora', rot: 'Horário', tipo: 'texto', dica: '12:00' },
     /* é isso que deixa ter Almoço 1 e 2 como opções do mesmo horário */
     { k: 'grupo', rot: 'Alternativa de qual refeição', tipo: 'grupo' },
+    /* dia de aula com estágio de manhã muda onde e quando se come */
+    { k: 'ondeAula', rot: 'Em dia de aula com estágio de manhã', tipo: 'escolha', padrao: '', ops: [
+      ['', 'No horário de sempre'], ['estagio', 'No estágio, logo que chega'],
+      ['faculdade', 'Na faculdade, chegando do estágio']] },
     { k: 'o', rot: 'O que tem', tipo: 'texto', dica: '180 g de frango, arroz e salada' },
     { k: 'prot', rot: 'Proteína em gramas', tipo: 'numero' },
     { k: 'kcal', rot: 'Calorias', tipo: 'numero' },
@@ -194,6 +198,33 @@ export function blocosDoDia(s, dia) {
   });
   return out.sort((a, b) => a.de - b.de);
 }
+/* Estágio que acaba antes da aula do mesmo dia, com até 3 h de intervalo:
+   é dia de ir do estágio direto pra faculdade. */
+export const TRAJETO_MIN = 30;        // 25 min de trajeto e 5 de folga, como no plano
+export const INTERVALO_DIRETO = 3 * 60;
+export function estagioAntesDaAula(s, dia) {
+  const bl = blocosDoDia(s, dia);
+  const aula = bl.find(b => b.tipo === 'aula');
+  if (!aula) return null;
+  const estagio = bl.filter(b => b.tipo === 'estagio' && b.ate <= aula.de && aula.de - b.ate <= INTERVALO_DIRETO).pop();
+  return estagio ? { estagio, aula } : null;
+}
+
+/* Onde e quando cai uma refeição (um grupo de alternativas) num dia da
+   semana. Só muda em dia de aula com estágio de manhã, e só se a refeição
+   pediu isso em "ondeAula": aí o café vai pro estágio, logo que chega, e o
+   almoço vai pra faculdade, na hora que chega do estágio. */
+export function horaDaRefeicao(g, s, dia) {
+  const fixo = { min: emMinutos(g.hora), onde: null };
+  const quer = (g.opcoes || []).map(r => r.ondeAula).find(Boolean);
+  if (!quer) return fixo;
+  const ea = estagioAntesDaAula(s, dia);
+  if (!ea) return fixo;
+  if (quer === 'estagio') return { min: ea.estagio.de + TRAJETO_MIN, onde: 'no estágio' };
+  if (quer === 'faculdade') return { min: ea.estagio.ate + TRAJETO_MIN, onde: 'na faculdade' };
+  return fixo;
+}
+
 /* alguém cadastrou aula (ou estágio) com dia e horário? */
 const temHorarioDe = (s, tipo) => ((tipo === 'aula' ? s.listas.materias : s.listas.turnos) || [])
   .some(m => emMinutos(m.inicio) != null && emMinutos(m.fim) != null && (m.dias || []).length);
@@ -209,6 +240,10 @@ export function horaDoHabito(h, s, dia) {
     const b = blocosDoDia(s, dia).find(x => x.tipo === h.ancora);
     if (!b) return null;
     const antes = h.antes === '' || h.antes == null || !Number.isFinite(Number(h.antes)) ? ANTES_PADRAO : Number(h.antes);
+    /* estágio de manhã e aula à tarde: sai pra aula direto do estágio, na
+       hora que ele acaba, e não X minutos antes da aula */
+    const ea = h.ancora === 'aula' && estagioAntesDaAula(s, dia);
+    if (ea) return { min: ea.estagio.ate, antes, bloco: b, direto: ea.estagio };
     return { min: Math.max(0, b.de - antes), antes, bloco: b };
   }
   return { min: emMinutos(h.hora) };
@@ -508,11 +543,11 @@ export function linhaDoDia(s, k = iso(), grupos = []) {
     const hd = horaDoHabito(h, s, dia);
     if (hd.min == null) { semHora.push(h); return; }
     itens.push({ tipo: 'habito', id: h.id, min: hd.min, nome: h.nome, h,
-      ancorado: hd.bloco || null, antes: hd.antes, choque: choqueDe(hd.min, h.pilar, hd.bloco?.tipo) });
+      ancorado: hd.bloco || null, direto: hd.direto || null, antes: hd.antes, choque: choqueDe(hd.min, h.pilar, hd.bloco?.tipo) });
   });
   grupos.forEach(g => {
-    const min = emMinutos(g.hora);
-    if (min != null) itens.push({ tipo: 'refeicao', id: 'g' + g.grupo, min, nome: g.nome, g });
+    const { min, onde } = horaDaRefeicao(g, s, dia);
+    if (min != null) itens.push({ tipo: 'refeicao', id: 'g' + g.grupo, min, nome: g.nome, g, onde });
   });
   blocos.forEach((b, i) => itens.push({
     tipo: b.tipo, id: b.tipo + i, min: b.de, ate: b.ate, nome: b.nome,
@@ -753,14 +788,29 @@ export const novoPerfil = nome => ({
    dado já salvo no aparelho. Cada uma roda uma vez só (fica anotada em
    `aplicados`), então mudar de novo pela tela depois vale normalmente. */
 export const AJUSTES_PEDIDOS = {
-  pedro: [{ id: 'acorda-0600', cfg: { acorda: '06:00' } }],
+  pedro: [
+    { id: 'acorda-0600', cfg: { acorda: '06:00' } },
+    /* terça e sexta: café no estágio, almoço na faculdade */
+    { id: 'refeicoes-dia-de-aula', refeicoes: { cafe: { ondeAula: 'estagio' }, almoco: { ondeAula: 'faculdade' } } },
+  ],
 };
 export function aplicarPedidos(id, s) {
   const feitos = s.aplicados || [];
   const novos = (AJUSTES_PEDIDOS[id] || []).filter(x => !feitos.includes(x.id));
   if (!novos.length) return s;
-  return novos.reduce((acc, x) => ({ ...acc, cfg: { ...acc.cfg, ...x.cfg } }),
-    { ...s, aplicados: [...feitos, ...novos.map(x => x.id)] });
+  return novos.reduce((acc, x) => ({
+    ...acc,
+    cfg: { ...acc.cfg, ...(x.cfg || {}) },
+    listas: !x.refeicoes ? acc.listas : {
+      ...acc.listas,
+      /* só preenche quem ainda não escolheu: não desfaz edição feita na mão */
+      refeicoes: (acc.listas.refeicoes || []).map(r => {
+        const patch = x.refeicoes[r.grupo];
+        if (!patch) return r;
+        return { ...r, ...Object.fromEntries(Object.entries(patch).filter(([k]) => !(k in r))) };
+      }),
+    },
+  }), { ...s, aplicados: [...feitos, ...novos.map(x => x.id)] });
 }
 export function carregarPerfil(id) {
   const base = novoPerfil((PERFIS.find(p => p.id === id) || { nome: 'Pedro' }).nome);

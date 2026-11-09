@@ -883,4 +883,61 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.equal(D.aplicarPedidos('ana', antigo).cfg.acorda, '07:00', 'a Ana não é mexida');
 }
 
+
+/* ---- terça e sexta: estágio de manhã, café lá, almoço na faculdade ---- */
+{
+  const p = D.novoPerfil('Pedro');
+  p.modo = 'aula';
+  p.cfg.acorda = '06:00';
+  p.listas.turnos = [
+    { id: 'a', nome: 'Estágio', dias: [0, 2, 3], inicio: '12:00', fim: '18:00' },
+    { id: 'b', nome: 'Estágio', dias: [1], inicio: '07:00', fim: '13:00' },
+    { id: 'c', nome: 'Estágio', dias: [4], inicio: '08:00', fim: '13:00' },
+  ];
+  p.listas.materias = [{ id: 'm', nome: 'Redes', dias: [1, 4], inicio: '14:00', fim: '17:30' }];
+  p.listas.habitos = [{ id: 's', pilar: 'fac', nome: 'Sai pra faculdade', hora: '08:00', dias: [0, 1, 2, 3, 4], modo: 'aula', ancora: 'aula', antes: 30 }];
+  const { refeicoes } = Di.importarPlanoDieta({ refeicoes: [
+    { grupo: 'cafe', nome: 'Café da manhã', hora: '07:20', ondeAula: 'estagio' },
+    { grupo: 'almoco', nome: 'Almoço 1', hora: '12:00', ondeAula: 'faculdade' },
+    { grupo: 'almoco', nome: 'Almoço 2', hora: '12:00', ondeAula: 'faculdade' },
+    { grupo: 'jantar', nome: 'Jantar', hora: '22:00' },
+  ] });
+  p.listas.refeicoes = refeicoes;
+  const g = Di.gruposDeRefeicao(refeicoes);
+  const seg = D.maisDias(hoje, -D.diaIdx(hoje));
+  const linha = d => D.linhaDoDia(p, D.maisDias(seg, d), g).itens;
+  const ach = (l, nome) => l.find(i => i.nome === nome);
+
+  const ter = linha(1);
+  assert.equal(ach(ter, 'Café da manhã').hora, '07:30');
+  assert.equal(ach(ter, 'Café da manhã').onde, 'no estágio');
+  assert.equal(ach(ter, 'Sai pra faculdade').hora, '13:00', 'sai direto do estágio');
+  assert.ok(ach(ter, 'Sai pra faculdade').direto);
+  assert.equal(ach(ter, 'Sai pra faculdade').choque, null, 'sair na hora que o estágio acaba não é choque');
+  assert.equal(ach(ter, 'Almoço').hora, '13:30');
+  assert.equal(ach(ter, 'Almoço').onde, 'na faculdade');
+  assert.deepEqual(ter.map(i => i.nome).slice(0, 7),
+    ['Acorda', 'Estágio', 'Café da manhã', 'Sai pra faculdade', 'Almoço', 'Redes', 'Jantar']);
+  assert.equal(ter[0].cedo, null, 'terça: acorda 6h, estágio 7h, uma hora cravada não avisa');
+
+  const sex = linha(4);
+  assert.equal(ach(sex, 'Café da manhã').hora, '08:30');
+  assert.equal(ach(sex, 'Almoço').hora, '13:30');
+  assert.equal(sex[0].cedo, null, 'sexta: dá tempo');
+
+  const qua = linha(2);
+  assert.equal(ach(qua, 'Café da manhã').hora, '07:20', 'dia sem aula: horário de sempre');
+  assert.equal(ach(qua, 'Café da manhã').onde, null);
+  assert.equal(ach(qua, 'Almoço').hora, '12:00');
+  assert.ok(!ach(qua, 'Sai pra faculdade'));
+
+  // o pedido chega no perfil já salvo, sem desfazer o que foi escolhido na mão
+  const salvo = { ...D.novoPerfil('Pedro'), aplicados: ['acorda-0600'],
+    listas: { ...p.listas, refeicoes: refeicoes.map(r => (r.grupo === 'almoco' ? r : { ...r, ondeAula: undefined }))
+      .map(({ ondeAula, ...r }) => (r.grupo === 'jantar' ? { ...r, ondeAula: '' } : r)) } };
+  const mig = D.aplicarPedidos('pedro', salvo);
+  assert.equal(mig.listas.refeicoes.find(r => r.grupo === 'cafe').ondeAula, 'estagio');
+  assert.equal(mig.listas.refeicoes.find(r => r.grupo === 'jantar').ondeAula, '');
+}
+
 console.log('ok — todas as regras do Ritmo passaram');

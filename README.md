@@ -80,6 +80,12 @@ só aparece nos dias que têm aquele bloco e sai X minutos antes do começo dele
 no meio da aula ou do estágio, e aula que bate com estágio, ficam marcados em rosa.
 Refeição e hábito do próprio bloco não contam como choque.
 
+Dia de aula com estágio de manhã (o estágio acaba até 3 h antes da aula) tem regra
+própria: o "Sai pra faculdade" sai direto do estágio, na hora que ele acaba, e cada
+refeição pode mudar de lugar nesses dias ("Em dia de aula com estágio de manhã"): no
+estágio, 30 min depois de começar, ou na faculdade, 30 min depois de sair do estágio.
+No plano do Pedro o café vai pro estágio e o almoço pra faculdade.
+
 O **Progresso** mostra a média dos últimos 7 e 30 dias, a sequência atual e a melhor,
 as últimas 12 semanas dia a dia, a média por semana, cada pilar e cada hábito do mais
 furado pro mais firme. O histórico começa no primeiro dia com resposta: antes disso

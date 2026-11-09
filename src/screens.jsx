@@ -402,10 +402,12 @@ function Rotina({ s, a }) {
     }
     if (it.tipo === 'refeicao') {
       const o = it.g.opcoes;
-      return o.length > 1 ? `${o.length} opções · escolha na Dieta` : (o[0].o || '');
+      const oque = o.length > 1 ? `${o.length} opções · escolha na Dieta` : (o[0].o || '');
+      return it.onde ? `${it.onde[0].toUpperCase()}${it.onde.slice(1)} · ${oque}` : oque;
     }
-    const ancora = it.ancorado
-      && `${it.antes} min antes ${it.ancorado.tipo === 'aula' ? `da aula das ${D.emHora(it.ancorado.de)}` : `do estágio das ${D.emHora(it.ancorado.de)}`}`;
+    const ancora = it.direto
+      ? `direto do estágio, que acaba às ${D.emHora(it.direto.ate)} · aula às ${D.emHora(it.ancorado.de)}`
+      : it.ancorado && `${it.antes} min antes ${it.ancorado.tipo === 'aula' ? `da aula das ${D.emHora(it.ancorado.de)}` : `do estágio das ${D.emHora(it.ancorado.de)}`}`;
     return [D.pilar(it.h.pilar)?.nome, ancora || it.h.meta].filter(Boolean).join(' · ');
   };
 
