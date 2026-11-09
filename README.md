@@ -112,6 +112,14 @@ as últimas 12 semanas dia a dia, a média por semana, cada pilar e cada hábito
 furado pro mais firme. O histórico começa no primeiro dia com resposta: antes disso
 nada conta, e depois dele dia em branco conta como zero.
 
+## Como fazer cada exercício
+
+Na Academia, embaixo de cada exercício, um boneco animado mostra o movimento. Os
+bonecos são os do Volta ao Campo (`src/figuras.js`, SVG que anima sozinho, sem imagem
+de fora, funciona offline), e `src/figuras-opengym.json` diz qual boneco é de qual
+exercício. A perna direita, a operada, aparece em rosa. Com as animações desligadas em
+Ajustes, ou "reduzir movimento" ligado no iPhone, o boneco fica parado na pose principal.
+
 ## O percurso de 90 dias
 
 Três fases de 30 dias: **Base** (criar o hábito), **Ritmo** (subir a carga) e **Pico**

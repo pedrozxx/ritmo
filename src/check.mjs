@@ -1156,4 +1156,24 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.equal(D.emHora(D.saidaPlanejada(pe, hoje)), '06:00');
 }
 
+
+/* ---- boneco de cada exercício do plano ---- */
+{
+  const { FIGURES, figSvg } = await import('./figuras.js');
+  const FIG = (await import('./figuras-opengym.json', { with: { type: 'json' } })).default;
+  const NOMES = (await import('./nomes-opengym.json', { with: { type: 'json' } })).default;
+  for (const [id, k] of Object.entries(FIG)) {
+    if (id === '_') continue;
+    assert.ok(FIGURES[k], `${id} aponta pra um boneco que existe (${k})`);
+    assert.ok(NOMES[id] || id.startsWith('vac-'), `${id} é um exercício conhecido`);
+    assert.ok(figSvg(k).startsWith('<svg'), `${k} desenha`);
+  }
+  const plano = (await import('./plano-treino.json', { with: { type: 'json' } })).default;
+  const ids = new Set(plano.routines.flatMap(r => r.ex.map(e => e.id)));
+  const sem = [...ids].filter(id => !FIG[id]);
+  assert.deepEqual(sem, ['2188'], 'só o tríceps francês fica sem boneco');
+  assert.ok(figSvg('squat').includes('<animate'), 'anima');
+  assert.ok(!figSvg('squat', true).includes('<animate'), 'parado não anima');
+}
+
 console.log('ok — todas as regras do Ritmo passaram');

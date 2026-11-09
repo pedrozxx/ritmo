@@ -9,6 +9,8 @@ import * as Di from './dieta.js';
 import * as J from './joelho.js';
 import * as ICS from './ics.js';
 import NOMES_OPENGYM from './nomes-opengym.json';
+import FIGURAS_OPENGYM from './figuras-opengym.json';
+import { figSvg } from './figuras.js';
 /* o plano do Pedro embutido: o botão de Ajustes aplica estes três de uma vez.
    Não é semente — perfil novo continua nascendo vazio, isso só entra no toque. */
 import PLANO_TREINO from './plano-treino.json';
@@ -952,6 +954,10 @@ function ExercicioDoDia({ s, a, treino, ex, faseId, dia = D.iso(), editavel = tr
   const sobe = T.fechouAFaixa(ex, log);
   const titulo = ex.nome || ex.ref;
   const subs = (ex.subs || []).map(id => NOMES_OPENGYM[id] || id);
+  /* o boneco de como fazer; parado se as animações estão desligadas no app
+     ou no iPhone (reduzir movimento), porque o SVG anima sozinho */
+  const fig = FIGURAS_OPENGYM[ex.ref];
+  const parado = !s.anim || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   const gravar = novo => a.setExtra(T.chaveLog(treino, ex), { ...log, ...novo }, dia);
   const serie = (i, v) => {
@@ -1007,6 +1013,8 @@ function ExercicioDoDia({ s, a, treino, ex, faseId, dia = D.iso(), editavel = tr
           </details>
         )}
         {(ex.nota || ex.desc) && <span className="nota">{ex.nota || ex.desc}</span>}
+        {/* SVG montado em figuras.js só a partir de constantes do código: nada de fora entra aqui */}
+        {fig && <div className="fig" dangerouslySetInnerHTML={{ __html: figSvg(fig, parado) }} />}
       </div>
     </div>
   );
