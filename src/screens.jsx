@@ -388,7 +388,11 @@ function Rotina({ s, a }) {
   };
 
   const detalhe = it => {
-    if (it.tipo === 'acorda') return 'Mesmo horário todo dia. Abre a janela e bebe um copo de água.';
+    if (it.tipo === 'acorda') {
+      return it.cedo
+        ? `${it.cedo.tipo === 'aula' ? 'A aula' : 'O estágio'} começa às ${D.emHora(it.cedo.de)}. Neste dia, acorde lá pelas ${D.emHora((it.cedo.de - D.MARGEM_ACORDAR + D.DIA_MIN) % D.DIA_MIN)}.`
+        : 'Mesmo horário todo dia. Abre a janela e bebe um copo de água.';
+    }
     if (it.tipo === 'dorme') return `8 horas antes de acordar. Tela desligada às ${D.emHora((D.dormeMin(s) - 30 + D.DIA_MIN) % D.DIA_MIN)}.`;
     if (it.tipo === 'aula' || it.tipo === 'estagio') {
       const ate = `${it.tipo === 'aula' ? 'Aula' : 'Estágio'} até ${D.emHora(it.ate)}`;
@@ -472,6 +476,7 @@ function Rotina({ s, a }) {
                         {i === agora && <Pill t="Agora" cor="lilac" />}
                         {it.choque && it.tipo === 'habito' && <Pill t={`durante ${it.choque.tipo === 'aula' ? 'a aula' : 'o estágio'}`} cor="warn" />}
                         {it.choque && it.tipo !== 'habito' && <Pill t="choque de horário" cor="warn" />}
+                        {it.cedo && <Pill t="tarde demais" cor="warn" />}
                       </div>
                       {detalhe(it) && <span>{detalhe(it)}</span>}
                     </div>
@@ -1346,8 +1351,17 @@ function Estagio({ s, a }) {
       <Card>
         <Head titulo="Horário do estágio" chave="turnos" a={a} />
         {(s.listas.turnos || []).length === 0
-          ? <Convite a={a} chave="turnos" titulo="Horário do estágio" rotulo="Cadastrar horário"
+          ? <>
+            <Convite a={a} chave="turnos" titulo="Horário do estágio" rotulo="Cadastrar horário"
               texto=" Com o horário aqui, o estágio aparece na linha da Rotina e os hábitos que dependem dele andam junto." />
+            {/* o horário do plano do Pedro, sem passar pelo botão que troca tudo */}
+            <button className="btn-ghost" style={{ height: 'auto', padding: '12px 14px', lineHeight: 1.4 }}
+              onClick={() => a.importarRotina(s.listas.habitos,
+              PLANO_ROTINA.turnos.map(tn => ({ ...tn, id: D.novoId() })))}>
+              Usar o do plano: {PLANO_ROTINA.turnos.map(tn =>
+                `${tn.dias.map(d => D.DIAS_SEMANA[d].toLowerCase()).join('/')} ${tn.inicio.replace(':00', 'h')}–${tn.fim.replace(':00', 'h')}`).join(', ')}
+            </button>
+          </>
           : s.listas.turnos.map(tn => (
             <div className="row" key={tn.id}>
               <div className="row-txt">

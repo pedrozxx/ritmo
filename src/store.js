@@ -479,6 +479,7 @@ export function comHorariosAjustados(habitos, conflitos) {
    seguinte. O que cai de madrugada (depois da meia-noite e antes de acordar)
    vai pro fim da lista, não pro começo. */
 export const SONO_MIN = 8 * 60;
+export const MARGEM_ACORDAR = 60;   // do acordar até começar aula ou estágio
 export const DIA_MIN = 24 * 60;
 export const acordaMin = s => emMinutos(s.cfg?.acorda) ?? emMinutos(CFG_PADRAO.acorda);
 export const dormeMin = s => (acordaMin(s) - SONO_MIN + DIA_MIN) % DIA_MIN;
@@ -498,7 +499,10 @@ export function linhaDoDia(s, k = iso(), grupos = []) {
   const choqueDe = (min, pilar, tipo) => blocos.find(b => b.tipo !== tipo && pilar !== 'diet'
     && dono[b.tipo] !== pilar && min >= b.de && min < b.ate) || null;
 
-  const itens = [{ tipo: 'acorda', id: 'acorda', min: acorda, nome: 'Acorda' }];
+  /* Acordar e já estar no estágio não dá. Se o primeiro bloco do dia começa
+     menos de uma hora depois de acordar, o item de acordar avisa. */
+  const primeiro = blocos.find(b => noDia(s, b.de) < MARGEM_ACORDAR);
+  const itens = [{ tipo: 'acorda', id: 'acorda', min: acorda, nome: 'Acorda', cedo: primeiro || null }];
   const semHora = [];
   habitosDoDia(s, k).forEach(h => {
     const hd = horaDoHabito(h, s, dia);

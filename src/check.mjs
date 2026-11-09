@@ -855,4 +855,20 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.ok(ks({}).includes('hora') && !ks({}).includes('antes'));
 }
 
+
+/* ---- acordar em cima da hora do estágio ---- */
+{
+  const p = D.novoPerfil('Cedo');
+  p.cfg.acorda = '07:00';
+  p.listas.turnos = [{ id: 'a', nome: 'Estágio', dias: [1], inicio: '07:00', fim: '13:00' },
+    { id: 'b', nome: 'Estágio', dias: [0], inicio: '12:00', fim: '18:00' }];
+  const seg = D.maisDias(hoje, -D.diaIdx(hoje));
+  const ter = D.maisDias(seg, 1);
+  assert.equal(D.linhaDoDia(p, ter).itens[0].cedo.de, 7 * 60, 'terça: estágio às 7, acorda às 7');
+  assert.equal(D.linhaDoDia(p, seg).itens[0].cedo, null, 'segunda: dá tempo');
+  const plano = (await import('./plano-rotina.json', { with: { type: 'json' } })).default;
+  const doDia = d => plano.turnos.filter(t => t.dias.includes(d)).map(t => `${t.inicio}-${t.fim}`);
+  assert.deepEqual([0, 1, 2, 3, 4].map(doDia), [['12:00-18:00'], ['07:00-13:00'], ['12:00-18:00'], ['12:00-18:00'], ['08:00-13:00']]);
+}
+
 console.log('ok — todas as regras do Ritmo passaram');
