@@ -889,6 +889,7 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   const p = D.novoPerfil('Pedro');
   p.modo = 'aula';
   p.cfg.acorda = '06:00';
+  p.cfg.trajetoEstagio = 50;
   p.listas.turnos = [
     { id: 'a', nome: 'Estágio', dias: [0, 2, 3], inicio: '12:00', fim: '18:00' },
     { id: 'b', nome: 'Estágio', dias: [1], inicio: '07:00', fim: '13:00' },
@@ -917,13 +918,20 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.equal(ach(ter, 'Almoço').hora, '13:30');
   assert.equal(ach(ter, 'Almoço').onde, 'na faculdade');
   assert.deepEqual(ter.map(i => i.nome).slice(0, 7),
-    ['Acorda', 'Estágio', 'Café da manhã', 'Sai pra faculdade', 'Almoço', 'Redes', 'Jantar']);
-  assert.equal(ter[0].cedo, null, 'terça: acorda 6h, estágio 7h, uma hora cravada não avisa');
+    ['Acorda', 'Sai pro estágio', 'Estágio', 'Café da manhã', 'Sai pra faculdade', 'Almoço', 'Redes']);
+  assert.equal(ach(ter, 'Sai pro estágio').hora, '06:10', 'ônibus de 50 min pro estágio das 7h');
+  assert.equal(D.emHora(ter[0].cedo.sugestao), '05:25', 'terça: acordar às 6 não dá, sugere 5h25');
 
   const sex = linha(4);
   assert.equal(ach(sex, 'Café da manhã').hora, '08:30');
   assert.equal(ach(sex, 'Almoço').hora, '13:30');
-  assert.equal(sex[0].cedo, null, 'sexta: dá tempo');
+  assert.equal(ach(sex, 'Sai pro estágio').hora, '07:10');
+  assert.equal(sex[0].cedo, null, 'sexta: sai 7h10, acordando às 6 dá tempo');
+  assert.equal(ach(linha(0), 'Sai pro estágio').hora, '11:10');
+  const comHabito = { ...p, listas: { ...p.listas, habitos: [...p.listas.habitos,
+    { id: 'se', pilar: 'est', nome: 'Peguei o ônibus', ancora: 'estagio', antes: 55 }] } };
+  assert.ok(!ach(D.linhaDoDia(comHabito, D.maisDias(seg, 2), g).itens, 'Sai pro estágio'),
+    'hábito preso ao estágio substitui a saída automática');
 
   const qua = linha(2);
   assert.equal(ach(qua, 'Café da manhã').hora, '07:20', 'dia sem aula: horário de sempre');

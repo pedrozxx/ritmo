@@ -200,7 +200,11 @@ export function blocosDoDia(s, dia) {
 }
 /* Estágio que acaba antes da aula do mesmo dia, com até 3 h de intervalo:
    é dia de ir do estágio direto pra faculdade. */
-export const TRAJETO_MIN = 30;        // 25 min de trajeto e 5 de folga, como no plano
+export const DEPOIS_DE_CHEGAR = 30;   // o café no estágio, depois de chegar e se ajeitar
+export const trajeto = (s, tipo) => {
+  const v = Number(s.cfg?.[tipo === 'aula' ? 'trajetoFaculdade' : 'trajetoEstagio']);
+  return Number.isFinite(v) && v >= 0 ? v : 30;
+};
 export const INTERVALO_DIRETO = 3 * 60;
 export function estagioAntesDaAula(s, dia) {
   const bl = blocosDoDia(s, dia);
@@ -220,8 +224,8 @@ export function horaDaRefeicao(g, s, dia) {
   if (!quer) return fixo;
   const ea = estagioAntesDaAula(s, dia);
   if (!ea) return fixo;
-  if (quer === 'estagio') return { min: ea.estagio.de + TRAJETO_MIN, onde: 'no estágio' };
-  if (quer === 'faculdade') return { min: ea.estagio.ate + TRAJETO_MIN, onde: 'na faculdade' };
+  if (quer === 'estagio') return { min: ea.estagio.de + DEPOIS_DE_CHEGAR, onde: 'no estágio' };
+  if (quer === 'faculdade') return { min: ea.estagio.ate + trajeto(s, 'aula'), onde: 'na faculdade' };
   return fixo;
 }
 
@@ -514,7 +518,7 @@ export function comHorariosAjustados(habitos, conflitos) {
    seguinte. O que cai de madrugada (depois da meia-noite e antes de acordar)
    vai pro fim da lista, não pro começo. */
 export const SONO_MIN = 8 * 60;
-export const MARGEM_ACORDAR = 60;   // do acordar até começar aula ou estágio
+export const PREPARO_MIN = 45;      // do acordar até sair de casa
 export const DIA_MIN = 24 * 60;
 export const acordaMin = s => emMinutos(s.cfg?.acorda) ?? emMinutos(CFG_PADRAO.acorda);
 export const dormeMin = s => (acordaMin(s) - SONO_MIN + DIA_MIN) % DIA_MIN;
@@ -534,10 +538,14 @@ export function linhaDoDia(s, k = iso(), grupos = []) {
   const choqueDe = (min, pilar, tipo) => blocos.find(b => b.tipo !== tipo && pilar !== 'diet'
     && dono[b.tipo] !== pilar && min >= b.de && min < b.ate) || null;
 
-  /* Acordar e já estar no estágio não dá. Se o primeiro bloco do dia começa
-     menos de uma hora depois de acordar, o item de acordar avisa. */
-  const primeiro = blocos.find(b => noDia(s, b.de) < MARGEM_ACORDAR);
-  const itens = [{ tipo: 'acorda', id: 'acorda', min: acorda, nome: 'Acorda', cedo: primeiro || null }];
+  /* A hora de sair pro primeiro compromisso do dia é o começo dele menos o
+     trajeto. Se não sobram PREPARO_MIN entre acordar e sair, o acordar avisa
+     e diz a hora que caberia. */
+  const b0 = blocos[0];
+  const saida0 = b0 ? b0.de - trajeto(s, b0.tipo) : null;
+  const cedo = b0 && saida0 - acorda < PREPARO_MIN
+    ? { ...b0, saida: saida0, sugestao: (saida0 - PREPARO_MIN + DIA_MIN) % DIA_MIN } : null;
+  const itens = [{ tipo: 'acorda', id: 'acorda', min: acorda, nome: 'Acorda', cedo }];
   const semHora = [];
   habitosDoDia(s, k).forEach(h => {
     const hd = horaDoHabito(h, s, dia);
@@ -549,6 +557,15 @@ export function linhaDoDia(s, k = iso(), grupos = []) {
     const { min, onde } = horaDaRefeicao(g, s, dia);
     if (min != null) itens.push({ tipo: 'refeicao', id: 'g' + g.grupo, min, nome: g.nome, g, onde });
   });
+  /* a saída pro estágio entra sozinha, a não ser que já exista um hábito
+     preso ao estágio fazendo esse papel */
+  const temSaida = habitosDoDia(s, k).some(h => h.ancora === 'estagio');
+  if (!temSaida) {
+    blocos.filter(b => b.tipo === 'estagio').forEach((b, i) => itens.push({
+      tipo: 'saida', id: 'saida' + i, min: (b.de - trajeto(s, 'estagio') + DIA_MIN) % DIA_MIN,
+      nome: 'Sai pro estágio', ate: b.de, trajeto: trajeto(s, 'estagio'),
+    }));
+  }
   blocos.forEach((b, i) => itens.push({
     tipo: b.tipo, id: b.tipo + i, min: b.de, ate: b.ate, nome: b.nome,
     /* aula e estágio no mesmo horário: avisa no bloco, não esconde nenhum */
@@ -755,6 +772,8 @@ export const CFG_PADRAO = {
   saldoBase: '',      // quanto a pessoa disse que tinha, e quando
   saldoBaseEm: '',
   acorda: '07:00',    // hora de acordar; a de dormir sai dela (8 h antes)
+  trajetoEstagio: 30,   // min de porta a porta até o estágio
+  trajetoFaculdade: 30, // min até a faculdade (de casa ou saindo do estágio)
 };
 /* Um perfil nasce vazio: só a estrutura, nenhum dado inventado.
    As categorias de gasto vêm preenchidas porque são genéricas — e dá pra editar. */
@@ -791,6 +810,8 @@ export const AJUSTES_PEDIDOS = {
   pedro: [
     { id: 'acorda-0600', cfg: { acorda: '06:00' } },
     /* terça e sexta: café no estágio, almoço na faculdade */
+    /* ônibus pra outra cidade: 40 a 50 min do ponto até o estágio */
+    { id: 'trajeto-onibus', cfg: { trajetoEstagio: 50 } },
     { id: 'refeicoes-dia-de-aula', refeicoes: { cafe: { ondeAula: 'estagio' }, almoco: { ondeAula: 'faculdade' } } },
   ],
 };

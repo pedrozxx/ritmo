@@ -360,7 +360,7 @@ function Percurso({ s, a }) {
    refeições e aula no mesmo relógio. Cada hábito é Sim / Não, cada refeição
    é um check; aula e os horários de sono são só referência. */
 const TIPO_TL = {
-  acorda: 'sono', dorme: 'sono', aula: 'aula', estagio: 'aula', refeicao: 'diet',
+  acorda: 'sono', dorme: 'sono', aula: 'aula', estagio: 'aula', saida: 'sono', refeicao: 'diet',
 };
 function Rotina({ s, a }) {
   const [dia, setDia] = useState(D.iso());
@@ -390,10 +390,11 @@ function Rotina({ s, a }) {
   const detalhe = it => {
     if (it.tipo === 'acorda') {
       return it.cedo
-        ? `${it.cedo.tipo === 'aula' ? 'A aula' : 'O estágio'} começa às ${D.emHora(it.cedo.de)}. Neste dia, acorde lá pelas ${D.emHora((it.cedo.de - D.MARGEM_ACORDAR + D.DIA_MIN) % D.DIA_MIN)}.`
+        ? `${it.cedo.tipo === 'aula' ? 'A aula' : 'O estágio'} começa às ${D.emHora(it.cedo.de)} e a saída é às ${D.emHora((it.cedo.saida + D.DIA_MIN) % D.DIA_MIN)}. Pra ter ${D.PREPARO_MIN} min antes de sair, acorde às ${D.emHora(it.cedo.sugestao)}.`
         : 'Mesmo horário todo dia. Abre a janela e bebe um copo de água.';
     }
     if (it.tipo === 'dorme') return `8 horas antes de acordar. Tela desligada às ${D.emHora((D.dormeMin(s) - 30 + D.DIA_MIN) % D.DIA_MIN)}.`;
+    if (it.tipo === 'saida') return `${it.trajeto} min até o estágio, que começa às ${D.emHora(it.ate)}. Muda em Ajustes.`;
     if (it.tipo === 'aula' || it.tipo === 'estagio') {
       const ate = `${it.tipo === 'aula' ? 'Aula' : 'Estágio'} até ${D.emHora(it.ate)}`;
       return it.choque
@@ -1640,6 +1641,8 @@ function Ajustes({ s, a }) {
     ['kcal', 'Calorias por dia', 'Alvo da tela de Dieta', 'kcal'],
     ['garrafas', 'Garrafas de água', `De ${s.cfg.mlGarrafa} ml cada`, ''],
     ['horasSemana', 'Horas de estágio', 'Meta da semana', 'h'],
+    ['trajetoEstagio', 'Trajeto até o estágio', 'De porta a porta, contando o caminho até o ponto', 'min'],
+    ['trajetoFaculdade', 'Trajeto até a faculdade', 'De casa ou saindo do estágio', 'min'],
   ];
   return (
     <>

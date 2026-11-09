@@ -86,6 +86,11 @@ refeição pode mudar de lugar nesses dias ("Em dia de aula com estágio de manh
 estágio, 30 min depois de começar, ou na faculdade, 30 min depois de sair do estágio.
 No plano do Pedro o café vai pro estágio e o almoço pra faculdade.
 
+Os trajetos ficam em Ajustes (até o estágio e até a faculdade, em minutos). A Rotina põe
+"Sai pro estágio" sozinha, no começo do estágio menos o trajeto, e o "Acorda" avisa
+quando não sobram 45 min entre acordar e sair pro primeiro compromisso do dia, dizendo
+a hora que caberia.
+
 O **Progresso** mostra a média dos últimos 7 e 30 dias, a sequência atual e a melhor,
 as últimas 12 semanas dia a dia, a média por semana, cada pilar e cada hábito do mais
 furado pro mais firme. O histórico começa no primeiro dia com resposta: antes disso
