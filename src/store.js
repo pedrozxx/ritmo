@@ -200,6 +200,11 @@ export function blocosDoDia(s, dia) {
 }
 /* Estágio que acaba antes da aula do mesmo dia, com até 3 h de intervalo:
    é dia de ir do estágio direto pra faculdade. */
+export const COMER_MIN = 20;          // o mínimo pra almoçar sem engolir
+export const trajetoEstagioFac = s => {
+  const v = Number(s.cfg?.trajetoEstagioFac);
+  return s.cfg?.trajetoEstagioFac !== '' && Number.isFinite(v) && v > 0 ? v : trajeto(s, 'aula');
+};
 export const DEPOIS_DE_CHEGAR = 30;   // o café no estágio, depois de chegar e se ajeitar
 export const trajeto = (s, tipo) => {
   const v = Number(s.cfg?.[tipo === 'aula' ? 'trajetoFaculdade' : 'trajetoEstagio']);
@@ -225,7 +230,11 @@ export function horaDaRefeicao(g, s, dia) {
   const ea = estagioAntesDaAula(s, dia);
   if (!ea) return fixo;
   if (quer === 'estagio') return { min: ea.estagio.de + DEPOIS_DE_CHEGAR, onde: 'no estágio' };
-  if (quer === 'faculdade') return { min: ea.estagio.ate + trajeto(s, 'aula'), onde: 'na faculdade' };
+  if (quer === 'faculdade') {
+    /* chega do estágio e almoça antes da aula; se não sobra tempo, avisa */
+    const min = ea.estagio.ate + trajetoEstagioFac(s);
+    return { min, onde: 'na faculdade', aperto: min + COMER_MIN > ea.aula.de ? ea.aula : null };
+  }
   return fixo;
 }
 
@@ -247,7 +256,10 @@ export function horaDoHabito(h, s, dia) {
     /* estágio de manhã e aula à tarde: sai pra aula direto do estágio, na
        hora que ele acaba, e não X minutos antes da aula */
     const ea = h.ancora === 'aula' && estagioAntesDaAula(s, dia);
-    if (ea) return { min: ea.estagio.ate, antes, bloco: b, direto: ea.estagio };
+    if (ea) {
+      const chegada = ea.estagio.ate + trajetoEstagioFac(s);
+      return { min: ea.estagio.ate, antes, bloco: b, direto: ea.estagio, chegada, atraso: chegada > b.de };
+    }
     return { min: Math.max(0, b.de - antes), antes, bloco: b };
   }
   return { min: emMinutos(h.hora) };
@@ -551,11 +563,12 @@ export function linhaDoDia(s, k = iso(), grupos = []) {
     const hd = horaDoHabito(h, s, dia);
     if (hd.min == null) { semHora.push(h); return; }
     itens.push({ tipo: 'habito', id: h.id, min: hd.min, nome: h.nome, h,
-      ancorado: hd.bloco || null, direto: hd.direto || null, antes: hd.antes, choque: choqueDe(hd.min, h.pilar, hd.bloco?.tipo) });
+      ancorado: hd.bloco || null, direto: hd.direto || null, antes: hd.antes,
+      chegada: hd.chegada ?? null, atraso: !!hd.atraso, choque: choqueDe(hd.min, h.pilar, hd.bloco?.tipo) });
   });
   grupos.forEach(g => {
-    const { min, onde } = horaDaRefeicao(g, s, dia);
-    if (min != null) itens.push({ tipo: 'refeicao', id: 'g' + g.grupo, min, nome: g.nome, g, onde });
+    const { min, onde, aperto } = horaDaRefeicao(g, s, dia);
+    if (min != null) itens.push({ tipo: 'refeicao', id: 'g' + g.grupo, min, nome: g.nome, g, onde, aperto: aperto || null });
   });
   /* a saída pro estágio entra sozinha, a não ser que já exista um hábito
      preso ao estágio fazendo esse papel */
@@ -773,7 +786,8 @@ export const CFG_PADRAO = {
   saldoBaseEm: '',
   acorda: '07:00',    // hora de acordar; a de dormir sai dela (8 h antes)
   trajetoEstagio: 30,   // min de porta a porta até o estágio
-  trajetoFaculdade: 30, // min até a faculdade (de casa ou saindo do estágio)
+  trajetoFaculdade: 30, // min de casa até a faculdade
+  trajetoEstagioFac: '', // min do estágio até a faculdade; em branco usa o de casa
 };
 /* Um perfil nasce vazio: só a estrutura, nenhum dado inventado.
    As categorias de gasto vêm preenchidas porque são genéricas — e dá pra editar. */
@@ -814,6 +828,8 @@ export const AJUSTES_PEDIDOS = {
     { id: 'trajeto-onibus', cfg: { trajetoEstagio: 50 } },
     /* mais 10 min de casa até o ponto: 60 de porta a porta */
     { id: 'trajeto-ate-o-ponto', cfg: { trajetoEstagio: 60 } },
+    /* a faculdade é na cidade de casa: do estágio até ela é o ônibus de volta */
+    { id: 'faculdade-na-minha-cidade', cfg: { trajetoEstagioFac: 60 } },
     { id: 'refeicoes-dia-de-aula', refeicoes: { cafe: { ondeAula: 'estagio' }, almoco: { ondeAula: 'faculdade' } } },
   ],
 };

@@ -404,10 +404,14 @@ function Rotina({ s, a }) {
     if (it.tipo === 'refeicao') {
       const o = it.g.opcoes;
       const oque = o.length > 1 ? `${o.length} opções · escolha na Dieta` : (o[0].o || '');
+      if (it.aperto) {
+        return `Chega na faculdade às ${it.hora} e a aula começa às ${D.emHora(it.aperto.de)}: não dá pra almoçar lá. `
+          + 'Almoce no estágio antes de sair ou leve marmita pra comer no ônibus.';
+      }
       return it.onde ? `${it.onde[0].toUpperCase()}${it.onde.slice(1)} · ${oque}` : oque;
     }
     const ancora = it.direto
-      ? `direto do estágio, que acaba às ${D.emHora(it.direto.ate)} · aula às ${D.emHora(it.ancorado.de)}`
+      ? `direto do estágio, que acaba às ${D.emHora(it.direto.ate)} · chega às ${D.emHora(it.chegada)}, aula às ${D.emHora(it.ancorado.de)}`
       : it.ancorado && `${it.antes} min antes ${it.ancorado.tipo === 'aula' ? `da aula das ${D.emHora(it.ancorado.de)}` : `do estágio das ${D.emHora(it.ancorado.de)}`}`;
     return [D.pilar(it.h.pilar)?.nome, ancora || it.h.meta].filter(Boolean).join(' · ');
   };
@@ -480,6 +484,8 @@ function Rotina({ s, a }) {
                         {it.choque && it.tipo === 'habito' && <Pill t={`durante ${it.choque.tipo === 'aula' ? 'a aula' : 'o estágio'}`} cor="warn" />}
                         {it.choque && it.tipo !== 'habito' && <Pill t="choque de horário" cor="warn" />}
                         {it.cedo && <Pill t="tarde demais" cor="warn" />}
+                        {it.atraso && <Pill t="chega atrasado" cor="warn" />}
+                        {it.aperto && <Pill t="sem tempo" cor="warn" />}
                       </div>
                       {detalhe(it) && <span>{detalhe(it)}</span>}
                     </div>
@@ -1642,7 +1648,8 @@ function Ajustes({ s, a }) {
     ['garrafas', 'Garrafas de água', `De ${s.cfg.mlGarrafa} ml cada`, ''],
     ['horasSemana', 'Horas de estágio', 'Meta da semana', 'h'],
     ['trajetoEstagio', 'Trajeto até o estágio', 'De porta a porta, contando o caminho até o ponto', 'min'],
-    ['trajetoFaculdade', 'Trajeto até a faculdade', 'De casa ou saindo do estágio', 'min'],
+    ['trajetoFaculdade', 'Trajeto até a faculdade', 'Saindo de casa', 'min'],
+    ['trajetoEstagioFac', 'Do estágio até a faculdade', 'Em branco, usa o de casa', 'min'],
   ];
   return (
     <>

@@ -966,4 +966,37 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.equal(sex[0].cedo, null, 'sexta: acorda 6h, sai 7h, dá tempo');
 }
 
+
+/* ---- faculdade na cidade de casa: estágio → faculdade é o ônibus de volta ---- */
+{
+  const p = D.aplicarPedidos('pedro', { ...D.novoPerfil('Pedro'),
+    aplicados: ['acorda-0600', 'trajeto-onibus', 'refeicoes-dia-de-aula', 'trajeto-ate-o-ponto'] });
+  assert.equal(p.cfg.trajetoEstagioFac, 60);
+  p.modo = 'aula';
+  p.listas.turnos = [{ id: 'b', nome: 'Estágio', dias: [1], inicio: '07:00', fim: '13:00' }];
+  p.listas.habitos = [{ id: 's', pilar: 'fac', nome: 'Sai pra faculdade', dias: [], ancora: 'aula', antes: 30 }];
+  const { refeicoes } = Di.importarPlanoDieta({ refeicoes: [
+    { grupo: 'almoco', nome: 'Almoço', hora: '12:00', ondeAula: 'faculdade' }] });
+  const g = Di.gruposDeRefeicao(refeicoes);
+  const ter = D.maisDias(D.maisDias(hoje, -D.diaIdx(hoje)), 1);
+  const com = aula => {
+    p.listas.materias = [{ id: 'm', nome: 'Redes', dias: [1], inicio: aula, fim: '17:30' }];
+    const it = D.linhaDoDia(p, ter, g).itens;
+    return { sai: it.find(i => i.nome === 'Sai pra faculdade'), alm: it.find(i => i.nome === 'Almoço') };
+  };
+  let r = com('14:00');
+  assert.equal(r.sai.hora, '13:00');
+  assert.equal(D.emHora(r.sai.chegada), '14:00');
+  assert.equal(r.sai.atraso, false, 'chega na hora exata');
+  assert.equal(r.alm.hora, '14:00');
+  assert.ok(r.alm.aperto, 'chega às 14h com aula às 14h: não dá pra almoçar lá');
+  r = com('13:30');
+  assert.equal(r.sai.atraso, true, 'aula 13h30 e chega 14h: atrasado');
+  r = com('14:30');
+  assert.equal(r.alm.aperto, null, 'meia hora de folga dá pra almoçar');
+  // em branco (ou zerado em Ajustes) usa o trajeto de casa
+  assert.equal(D.trajetoEstagioFac({ cfg: { trajetoEstagioFac: '', trajetoFaculdade: 25 } }), 25);
+  assert.equal(D.trajetoEstagioFac({ cfg: { trajetoEstagioFac: 0, trajetoFaculdade: 25 } }), 25);
+}
+
 console.log('ok — todas as regras do Ritmo passaram');
