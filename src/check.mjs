@@ -948,4 +948,22 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.equal(mig.listas.refeicoes.find(r => r.grupo === 'jantar').ondeAula, '');
 }
 
+
+/* ---- 10 min até o ponto + 50 de ônibus ---- */
+{
+  const ja50 = { ...D.novoPerfil('Pedro'), aplicados: ['acorda-0600', 'trajeto-onibus', 'refeicoes-dia-de-aula'],
+    cfg: { ...D.CFG_PADRAO, acorda: '06:00', trajetoEstagio: 50 } };
+  const p = D.aplicarPedidos('pedro', ja50);
+  assert.equal(p.cfg.trajetoEstagio, 60);
+  p.listas.turnos = [{ id: 'b', nome: 'Estágio', dias: [1], inicio: '07:00', fim: '13:00' },
+    { id: 'c', nome: 'Estágio', dias: [4], inicio: '08:00', fim: '13:00' }];
+  const seg = D.maisDias(hoje, -D.diaIdx(hoje));
+  const ter = D.linhaDoDia(p, D.maisDias(seg, 1)).itens;
+  assert.equal(ter.find(i => i.tipo === 'saida').hora, '06:00');
+  assert.equal(D.emHora(ter[0].cedo.sugestao), '05:15');
+  const sex = D.linhaDoDia(p, D.maisDias(seg, 4)).itens;
+  assert.equal(sex.find(i => i.tipo === 'saida').hora, '07:00');
+  assert.equal(sex[0].cedo, null, 'sexta: acorda 6h, sai 7h, dá tempo');
+}
+
 console.log('ok — todas as regras do Ritmo passaram');

@@ -812,6 +812,8 @@ export const AJUSTES_PEDIDOS = {
     /* terça e sexta: café no estágio, almoço na faculdade */
     /* ônibus pra outra cidade: 40 a 50 min do ponto até o estágio */
     { id: 'trajeto-onibus', cfg: { trajetoEstagio: 50 } },
+    /* mais 10 min de casa até o ponto: 60 de porta a porta */
+    { id: 'trajeto-ate-o-ponto', cfg: { trajetoEstagio: 60 } },
     { id: 'refeicoes-dia-de-aula', refeicoes: { cafe: { ondeAula: 'estagio' }, almoco: { ondeAula: 'faculdade' } } },
   ],
 };
