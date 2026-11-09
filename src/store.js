@@ -749,19 +749,32 @@ export const novoPerfil = nome => ({
   },
 });
 
+/* Mudanças que a pessoa pediu pro próprio perfil e que precisam chegar ao
+   dado já salvo no aparelho. Cada uma roda uma vez só (fica anotada em
+   `aplicados`), então mudar de novo pela tela depois vale normalmente. */
+export const AJUSTES_PEDIDOS = {
+  pedro: [{ id: 'acorda-0600', cfg: { acorda: '06:00' } }],
+};
+export function aplicarPedidos(id, s) {
+  const feitos = s.aplicados || [];
+  const novos = (AJUSTES_PEDIDOS[id] || []).filter(x => !feitos.includes(x.id));
+  if (!novos.length) return s;
+  return novos.reduce((acc, x) => ({ ...acc, cfg: { ...acc.cfg, ...x.cfg } }),
+    { ...s, aplicados: [...feitos, ...novos.map(x => x.id)] });
+}
 export function carregarPerfil(id) {
   const base = novoPerfil((PERFIS.find(p => p.id === id) || { nome: 'Pedro' }).nome);
   try {
     const bruto = localStorage.getItem(chaveDe(id));
-    if (!bruto) return base;
+    if (!bruto) return aplicarPedidos(id, base);
     const s = JSON.parse(bruto);
-    return {
+    return aplicarPedidos(id, {
       ...base, ...s,
       cfg: { ...base.cfg, ...s.cfg },
       dias: s.dias || {}, extra: s.extra || {}, tx: s.tx || [],
       joelho: s.joelho || {}, volta: s.volta || {}, modo: s.modo || 'aula',
       listas: migrarListas({ ...base.listas, ...s.listas }),
-    };
+    });
   } catch {
     return base;          // storage bloqueado ou JSON corrompido: começa limpo
   }

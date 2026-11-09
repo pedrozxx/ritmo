@@ -871,4 +871,16 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.deepEqual([0, 1, 2, 3, 4].map(doDia), [['12:00-18:00'], ['07:00-13:00'], ['12:00-18:00'], ['12:00-18:00'], ['08:00-13:00']]);
 }
 
+
+/* ---- acordar às 6 no perfil do Pedro, uma vez só ---- */
+{
+  const antigo = { ...D.novoPerfil('Pedro'), cfg: { ...D.CFG_PADRAO, acorda: '07:00' } };
+  const um = D.aplicarPedidos('pedro', antigo);
+  assert.equal(um.cfg.acorda, '06:00');
+  assert.equal(D.emHora(D.dormeMin(um)), '22:00');
+  const mudouDepois = { ...um, cfg: { ...um.cfg, acorda: '06:30' } };
+  assert.equal(D.aplicarPedidos('pedro', mudouDepois).cfg.acorda, '06:30', 'não volta pra 6 se mudar depois');
+  assert.equal(D.aplicarPedidos('ana', antigo).cfg.acorda, '07:00', 'a Ana não é mexida');
+}
+
 console.log('ok — todas as regras do Ritmo passaram');
