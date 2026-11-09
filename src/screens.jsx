@@ -405,8 +405,9 @@ function Rotina({ s, a }) {
       const o = it.g.opcoes;
       const oque = o.length > 1 ? `${o.length} opções · escolha na Dieta` : (o[0].o || '');
       if (it.aperto) {
-        return `Chega na faculdade às ${it.hora} e a aula começa às ${D.emHora(it.aperto.de)}: não dá pra almoçar lá. `
-          + 'Almoce no estágio antes de sair ou leve marmita pra comer no ônibus.';
+        /* a escolha é almoçar na faculdade mesmo; aqui só fica claro o custo */
+        return `Na faculdade · chega às ${it.hora} e a aula começa às ${D.emHora(it.aperto.de)}, `
+          + 'então o almoço come o começo da aula.';
       }
       return it.onde ? `${it.onde[0].toUpperCase()}${it.onde.slice(1)} · ${oque}` : oque;
     }
@@ -485,7 +486,7 @@ function Rotina({ s, a }) {
                         {it.choque && it.tipo !== 'habito' && <Pill t="choque de horário" cor="warn" />}
                         {it.cedo && <Pill t="tarde demais" cor="warn" />}
                         {it.atraso && <Pill t="chega atrasado" cor="warn" />}
-                        {it.aperto && <Pill t="sem tempo" cor="warn" />}
+                        {it.aperto && <Pill t="em cima da aula" cor="warn" />}
                       </div>
                       {detalhe(it) && <span>{detalhe(it)}</span>}
                     </div>

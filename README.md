@@ -91,7 +91,7 @@ Os trajetos ficam em Ajustes (até o estágio e até a faculdade, em minutos). A
 quando não sobram 45 min entre acordar e sair pro primeiro compromisso do dia, dizendo
 a hora que caberia. O trecho do estágio até a faculdade tem campo próprio (em branco,
 usa o de casa): com ele a Rotina marca "chega atrasado" quando a chegada passa do começo
-da aula, e "sem tempo" quando o almoço na faculdade não cabe 20 min antes da aula.
+da aula, e "em cima da aula" quando o almoço na faculdade não cabe 20 min antes dela.
 
 O **Progresso** mostra a média dos últimos 7 e 30 dias, a sequência atual e a melhor,
 as últimas 12 semanas dia a dia, a média por semana, cada pilar e cada hábito do mais
