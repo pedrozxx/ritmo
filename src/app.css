@@ -251,7 +251,11 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;-webki
   background:var(--accent-fill);color:var(--on-accent);font-family:Outfit,sans-serif;font-weight:600;font-size:14.5px;
   display:flex;align-items:center;gap:8px;box-shadow:0 10px 26px -8px rgba(80,40,160,.6)}
 .sheet-bd{position:absolute;inset:0;z-index:7;background:rgba(26,12,50,.34);backdrop-filter:blur(3px);border:0}
-.sheet{position:absolute;left:0;right:0;bottom:0;z-index:8;max-height:86%;display:flex;flex-direction:column;
+/* --teclado: altura do teclado do iOS, medida no App.jsx. A folha sobe por
+   cima dele e encolhe pra caber no que sobrou da tela. */
+.sheet{position:absolute;left:0;right:0;bottom:var(--teclado,0px);z-index:8;
+  max-height:min(86%, calc(100% - var(--teclado,0px) - var(--sa-top) - 12px));display:flex;flex-direction:column;
+  transition:bottom .22s cubic-bezier(.22,1,.36,1);
   background:var(--surface);border-radius:28px 28px 0 0;padding:0 20px calc(22px + var(--sa-bottom));
   box-shadow:0 -20px 60px -20px rgba(30,10,60,.4)}
 /* só a alça arrasta, pra não brigar com a rolagem de dentro */

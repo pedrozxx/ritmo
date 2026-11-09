@@ -86,7 +86,20 @@ export default function App() {
      recebendo toque em outro. Isso aqui devolve pro zero sempre que a janela
      muda de tamanho, que é quando o teclado abre e fecha. */
   useEffect(() => {
-    const nivelar = () => { if (window.scrollY || window.scrollX) window.scrollTo(0, 0); };
+    /* Com a janela parada no zero, o iOS não consegue mais rolar pra mostrar
+       o campo, e o teclado cobre a folha de baixo. Então o app mede quanto o
+       teclado tomou (a diferença entre a janela e a parte visível) e a folha
+       sobe isso, via --teclado. Abaixo de 80 px é barra do Safari, não teclado. */
+    const nivelar = () => {
+      if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
+      const v = window.visualViewport;
+      const tampa = v ? Math.max(0, Math.round(window.innerHeight - v.height - v.offsetTop)) : 0;
+      const kb = tampa > 80 ? tampa : 0;
+      document.documentElement.style.setProperty('--teclado', kb + 'px');
+      /* com o teclado aberto, o campo em foco rola pra dentro da folha */
+      const el = document.activeElement;
+      if (kb && el && el.closest?.('.sheet')) requestAnimationFrame(() => el.scrollIntoView({ block: 'nearest' }));
+    };
     const vv = window.visualViewport;
     vv?.addEventListener('resize', nivelar);
     vv?.addEventListener('scroll', nivelar);

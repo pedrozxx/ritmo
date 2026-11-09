@@ -60,7 +60,7 @@ export const SCHEMAS = {
     { k: 'modo', rot: 'Em qual semana', tipo: 'escolha', padrao: '',
       ops: [['', 'Nas duas'], ['aula', 'Só com aula'], ['ferias', 'Só sem aula']] },
   ]},
-  refeicoes: { um: 'refeição', campos: [
+  refeicoes: { um: 'refeição', fem: true, campos: [
     { k: 'nome', rot: 'Refeição', tipo: 'texto', obrig: true, dica: 'Almoço 2' },
     { k: 'hora', rot: 'Horário', tipo: 'texto', dica: '12:00' },
     /* é isso que deixa ter Almoço 1 e 2 como opções do mesmo horário */
@@ -77,7 +77,7 @@ export const SCHEMAS = {
     { k: 'nome', rot: 'Exercício', tipo: 'texto', obrig: true, dica: 'Supino inclinado' },
     { k: 'meta', rot: 'Séries e carga', tipo: 'texto', dica: '4 × 8 com 32 kg' },
   ]},
-  materias: { um: 'matéria', campos: [
+  materias: { um: 'matéria', fem: true, campos: [
     { k: 'nome', rot: 'Matéria', tipo: 'texto', obrig: true, dica: 'Sistemas Operacionais' },
     { k: 'dias', rot: 'Em que dias tem aula', tipo: 'dias' },
     { k: 'inicio', rot: 'Começa', tipo: 'texto', dica: '19:10' },
@@ -92,16 +92,16 @@ export const SCHEMAS = {
     { k: 'inicio', rot: 'Começa', tipo: 'texto', dica: '12:00' },
     { k: 'fim', rot: 'Termina', tipo: 'texto', dica: '18:00' },
   ]},
-  entregas: { um: 'entrega', campos: [
+  entregas: { um: 'entrega', fem: true, campos: [
     { k: 'nome', rot: 'O que é', tipo: 'texto', obrig: true, dica: 'Prova 2 de Banco de Dados' },
     { k: 'meta', rot: 'Detalhe', tipo: 'texto', dica: 'Sala B204' },
     { k: 'data', rot: 'Quando', tipo: 'data', obrig: true },
   ]},
-  tarefas: { um: 'tarefa', campos: [
+  tarefas: { um: 'tarefa', fem: true, campos: [
     { k: 'nome', rot: 'Tarefa', tipo: 'texto', obrig: true, dica: 'Review do PR' },
     { k: 'meta', rot: 'Detalhe', tipo: 'texto' },
   ]},
-  cats: { um: 'categoria', campos: [
+  cats: { um: 'categoria', fem: true, campos: [
     { k: 'nome', rot: 'Categoria', tipo: 'texto', obrig: true, dica: 'Alimentação' },
   ]},
   cofres: { um: 'objetivo', campos: [
@@ -112,7 +112,7 @@ export const SCHEMAS = {
   split: { um: 'dia da semana', fixo: true, campos: [
     { k: 'meta', rot: 'Treino do dia', tipo: 'texto', dica: 'Push A, Pull B, folga…' },
   ]},
-  metas: { um: 'meta', campos: [
+  metas: { um: 'meta', fem: true, campos: [
     { k: 'nome', rot: 'A meta', tipo: 'texto', obrig: true, dica: 'Treinar 20 vezes no mês' },
     { k: 'fase', rot: 'Fase do ciclo', tipo: 'escolha', padrao: 'base',
       ops: [['base', 'Base'], ['ritmo', 'Ritmo'], ['pico', 'Pico']] },

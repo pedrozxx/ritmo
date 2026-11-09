@@ -131,7 +131,7 @@ function Formulario({ s, chave, item, filtro, onSalvar, onVoltar }) {
         <button className="icon-btn" onClick={onVoltar} aria-label="Voltar">
           <Ico n="seta" s={18} w={2} />
         </button>
-        <h2>{item?.id ? 'Editar' : 'Novo'} {schema.um}</h2>
+        <h2>{item?.id ? 'Editar' : schema.fem ? 'Nova' : 'Novo'} {schema.um}</h2>
       </div>
       {campos.map(c => (
         <Campo key={c.k} campo={c} s={s} filtro={filtro} valor={v[c.k]} erro={erros[c.k]}
@@ -164,7 +164,7 @@ export function Gerenciador({ s, chave, filtro, titulo, onFechar, onSalvar, onAp
             <div className="sheet-head"><h2>{titulo}</h2></div>
             {itens.length === 0 && (
               <p className="empty" style={{ padding: '10px 0 18px' }}>
-                Nenhum {schema.um} cadastrado ainda.
+                {schema.fem ? 'Nenhuma' : 'Nenhum'} {schema.um} {schema.fem ? 'cadastrada' : 'cadastrado'} ainda.
               </p>
             )}
             {itens.map(i => (
