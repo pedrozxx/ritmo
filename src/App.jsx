@@ -155,7 +155,9 @@ export default function App() {
       ...p, cfg: { ...p.cfg, ...cfg }, listas: { ...p.listas, refeicoes, orientacoes },
     })),
     /* rotina de fora: troca os hábitos, mantendo o histórico dos dias */
-    importarRotina: habitos => setS(p => ({ ...p, listas: { ...p.listas, habitos } })),
+    importarRotina: (habitos, turnos) => setS(p => ({
+      ...p, listas: { ...p.listas, habitos, ...(turnos ? { turnos } : {}) },
+    })),
     /* joelho: o check do dia, os autotestes e os critérios de volta */
     setJoelho: check => setS(p => ({ ...p, joelho: { ...p.joelho, [D.iso()]: check } })),
     setVolta: (k, v) => setS(p => ({ ...p, volta: { ...p.volta, [k]: v } })),

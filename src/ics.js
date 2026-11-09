@@ -2,7 +2,7 @@
    É o único jeito de avisar com o app fechado: quem toca o alarme é o sistema,
    não o PWA. Mesmo truque do scripts/avisos.mjs do Volta ao Campo.
    Tudo função pura; testado em check.mjs. */
-import { iso, maisDias, diaIdx, DIAS_SEMANA } from './store.js';
+import { iso, maisDias, diaIdx, DIAS_SEMANA, horaDoHabito, emHora } from './store.js';
 import { DIAS_RETESTE, ultimoTeste } from './joelho.js';
 
 /* 0 = SEG … 6 = DOM, igual ao split e ao campo `dias` do hábito */
@@ -97,7 +97,15 @@ export function montarIcs(eventos, nome = 'Ritmo') {
    joelho quando há plano de treino. Hábito sem hora fica de fora e é
    contado em `semHora` — não invento horário pra ninguém. */
 export function avisosDoPerfil(s, ref = iso()) {
-  const habitos = (s.listas.habitos || []).filter(h => !h.modo || h.modo === (s.modo || 'aula'));
+  /* hábito preso à aula ou ao estágio tem um horário por dia: vira um
+     evento por dia da semana, cada um na hora certa daquele dia */
+  const habitos = (s.listas.habitos || []).filter(h => !h.modo || h.modo === (s.modo || 'aula'))
+    .flatMap(h => {
+      if (!h.ancora) return [h];
+      const porDia = DIAS_SEMANA.map((_, d) => [d, horaDoHabito(h, s, d)]).filter(([, x]) => x && x.bloco);
+      if (!porDia.length) return [h];          // sem horário de aula/estágio: fica o fixo
+      return porDia.map(([d, x]) => ({ ...h, id: `${h.id}-${d}`, hora: emHora(x.min), dias: [d] }));
+    });
   const eventos = [];
   let semHora = 0;
   habitos.forEach(h => {

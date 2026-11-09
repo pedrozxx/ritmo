@@ -360,7 +360,7 @@ function Percurso({ s, a }) {
    refeições e aula no mesmo relógio. Cada hábito é Sim / Não, cada refeição
    é um check; aula e os horários de sono são só referência. */
 const TIPO_TL = {
-  acorda: 'sono', dorme: 'sono', aula: 'aula', refeicao: 'diet',
+  acorda: 'sono', dorme: 'sono', aula: 'aula', estagio: 'aula', refeicao: 'diet',
 };
 function Rotina({ s, a }) {
   const [dia, setDia] = useState(D.iso());
@@ -390,12 +390,19 @@ function Rotina({ s, a }) {
   const detalhe = it => {
     if (it.tipo === 'acorda') return 'Mesmo horário todo dia. Abre a janela e bebe um copo de água.';
     if (it.tipo === 'dorme') return `8 horas antes de acordar. Tela desligada às ${D.emHora((D.dormeMin(s) - 30 + D.DIA_MIN) % D.DIA_MIN)}.`;
-    if (it.tipo === 'aula') return `Até ${D.emHora(it.ate)}`;
+    if (it.tipo === 'aula' || it.tipo === 'estagio') {
+      const ate = `${it.tipo === 'aula' ? 'Aula' : 'Estágio'} até ${D.emHora(it.ate)}`;
+      return it.choque
+        ? `${ate}. Bate com ${it.choque.tipo === 'aula' ? `a aula de ${it.choque.nome}` : 'o estágio'} (${D.emHora(it.choque.de)} às ${D.emHora(it.choque.ate)}).`
+        : ate;
+    }
     if (it.tipo === 'refeicao') {
       const o = it.g.opcoes;
       return o.length > 1 ? `${o.length} opções · escolha na Dieta` : (o[0].o || '');
     }
-    return [D.pilar(it.h.pilar)?.nome, it.h.meta].filter(Boolean).join(' · ');
+    const ancora = it.ancorado
+      && `${it.antes} min antes ${it.ancorado.tipo === 'aula' ? `da aula das ${D.emHora(it.ancorado.de)}` : `do estágio das ${D.emHora(it.ancorado.de)}`}`;
+    return [D.pilar(it.h.pilar)?.nome, ancora || it.h.meta].filter(Boolean).join(' · ');
   };
 
   return (
@@ -463,6 +470,8 @@ function Rotina({ s, a }) {
                       <div className="tl-h">
                         <b>{it.nome}</b>
                         {i === agora && <Pill t="Agora" cor="lilac" />}
+                        {it.choque && it.tipo === 'habito' && <Pill t={`durante ${it.choque.tipo === 'aula' ? 'a aula' : 'o estágio'}`} cor="warn" />}
+                        {it.choque && it.tipo !== 'habito' && <Pill t="choque de horário" cor="warn" />}
                       </div>
                       {detalhe(it) && <span>{detalhe(it)}</span>}
                     </div>
@@ -472,6 +481,17 @@ function Rotina({ s, a }) {
                 );
               })}
             </ol>
+            {itens.some(it => it.choque) && (
+              <p className="nota" style={{ marginBottom: 0 }}>
+                O que está marcado em rosa cai no meio da aula ou do estágio. Mude o horário
+                do hábito, ou prenda ele à aula ou ao estágio em "O horário depende de".
+              </p>
+            )}
+            {!s.listas.turnos?.length && (
+              <button className="link" style={{ marginTop: 10 }} onClick={() => a.go('estagio')}>
+                Cadastre o horário do estágio pra ele entrar aqui <Ico n="seta" s={14} />
+              </button>
+            )}
           </Card>
         )}
 
@@ -1324,6 +1344,22 @@ function Estagio({ s, a }) {
       </Card>
 
       <Card>
+        <Head titulo="Horário do estágio" chave="turnos" a={a} />
+        {(s.listas.turnos || []).length === 0
+          ? <Convite a={a} chave="turnos" titulo="Horário do estágio" rotulo="Cadastrar horário"
+              texto=" Com o horário aqui, o estágio aparece na linha da Rotina e os hábitos que dependem dele andam junto." />
+          : s.listas.turnos.map(tn => (
+            <div className="row" key={tn.id}>
+              <div className="row-txt">
+                <b>{tn.nome}</b>
+                <span>{(tn.dias || []).map(d => D.DIAS_SEMANA[d]).join(' · ') || 'sem dia marcado'}</span>
+              </div>
+              <span className="num" style={{ fontSize: 13 }}>{tn.inicio || '?'} às {tn.fim || '?'}</span>
+            </div>
+          ))}
+      </Card>
+
+      <Card>
         <div className="card-head">
           <h2>Chamados de TI</h2>
           <span className="more num">{semCh} na semana</span>
@@ -1909,7 +1945,8 @@ function ImportarPlano({ a }) {
           a.importarPlano(T.comNomes(treinos, NOMES_OPENGYM), split);
           const { refeicoes, cfg, orientacoes } = Di.importarPlanoDieta(PLANO_DIETA);
           a.importarDieta(refeicoes, cfg, orientacoes);
-          a.importarRotina(PLANO_ROTINA.habitos.map(hb => ({ ...hb, id: D.novoId() })));
+          a.importarRotina(PLANO_ROTINA.habitos.map(hb => ({ ...hb, id: D.novoId() })),
+            (PLANO_ROTINA.turnos || []).map(tn => ({ ...tn, id: D.novoId() })));
           setRuim(false);
           setMsg(`${treinos.length} rotinas de treino, ${refeicoes.length} refeições e ${PLANO_ROTINA.habitos.length} hábitos.`);
         }} />

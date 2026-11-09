@@ -49,7 +49,13 @@ export const SCHEMAS = {
         est: '6 h por dia, das 13h às 19h',
         fin: 'Lançar tudo no mesmo dia',
       } } },
-    { k: 'hora', rot: 'Horário', tipo: 'texto', dica: '18:00 — só pra exportar pro calendário' },
+    /* O horário pode sair da aula ou do estágio de cada dia: "sai pra
+       faculdade" às 08:00 não serve pra quem só tem aula à tarde na terça. */
+    { k: 'ancora', rot: 'O horário depende de', tipo: 'escolha', padrao: '', ops: [
+      ['', 'Horário fixo'], ['aula', 'Da aula do dia'], ['estagio', 'Do estágio do dia']] },
+    { k: 'antes', rot: 'Quantos minutos antes', tipo: 'numero', dica: '30',
+      soCampo: 'ancora', so: ['aula', 'estagio'] },
+    { k: 'hora', rot: 'Horário', tipo: 'texto', dica: '18:00', soCampo: 'ancora', so: [''] },
     { k: 'dias', rot: 'Em que dias', tipo: 'dias' },
     { k: 'modo', rot: 'Em qual semana', tipo: 'escolha', padrao: '',
       ops: [['', 'Nas duas'], ['aula', 'Só com aula'], ['ferias', 'Só sem aula']] },
@@ -74,6 +80,13 @@ export const SCHEMAS = {
     { k: 'fim', rot: 'Termina', tipo: 'texto', dica: '22:30' },
     { k: 'meta', rot: 'Detalhe', tipo: 'texto', dica: 'Sala B204, professor Silva' },
     { k: 'nota', rot: 'Nota parcial', tipo: 'numero' },
+  ]},
+  /* o expediente do estágio: é ele que põe o estágio na linha do dia */
+  turnos: { um: 'horário de estágio', campos: [
+    { k: 'nome', rot: 'Onde', tipo: 'texto', obrig: true, dica: 'Estágio' },
+    { k: 'dias', rot: 'Em que dias', tipo: 'dias' },
+    { k: 'inicio', rot: 'Começa', tipo: 'texto', dica: '12:00' },
+    { k: 'fim', rot: 'Termina', tipo: 'texto', dica: '18:00' },
   ]},
   entregas: { um: 'entrega', campos: [
     { k: 'nome', rot: 'O que é', tipo: 'texto', obrig: true, dica: 'Prova 2 de Banco de Dados' },
@@ -112,7 +125,7 @@ export const SCHEMAS = {
   ]},
 };
 export const camposVisiveis = (chave, v) =>
-  SCHEMAS[chave].campos.filter(c => !c.so || c.so.includes(v.tipo));
+  SCHEMAS[chave].campos.filter(c => !c.so || c.so.includes(v[c.soCampo || 'tipo'] ?? ''));
 
 /* A dica do campo, já resolvida pelo filtro que abriu o cadastro.
    Sem filtro ou sem correspondência, vale a dica genérica do campo. */
@@ -163,10 +176,42 @@ export const habitosDo = (s, pilarId) => s.listas.habitos.filter(h => h.pilar ==
 export const MODOS_SEMANA = [['aula', 'Com aula'], ['ferias', 'Sem aula']];
 export const diaIdx = k => (emDia(k).getDay() + 6) % 7;
 
-export function valeNoDia(h, s, k) {
-  if (h.modo && h.modo !== (s.modo || 'aula')) return false;
-  if (!h.dias || !h.dias.length) return true;
-  return h.dias.includes(diaIdx(k));
+export const valeNoDia = (h, s, k) => horaDoHabito(h, s, diaIdx(k)) !== null;
+
+/* ---- aula e estágio: os blocos fixos de cada dia da semana ----
+   Aula só existe na semana com aula. Estágio vale nas duas. */
+export const ANTES_PADRAO = 30;
+export const NOME_BLOCO = { aula: 'aula', estagio: 'estágio' };
+export function blocosDoDia(s, dia) {
+  const out = [];
+  if ((s.modo || 'aula') === 'aula') {
+    (janelaDeAula(s.listas.materias, dia)?.aulas || [])
+      .forEach(m => out.push({ tipo: 'aula', de: m.de, ate: m.ate, nome: m.nome }));
+  }
+  (s.listas.turnos || []).filter(t => (t.dias || []).includes(dia)).forEach(t => {
+    const de = emMinutos(t.inicio), ate = emMinutos(t.fim);
+    if (de != null && ate != null && ate > de) out.push({ tipo: 'estagio', de, ate, nome: t.nome || 'Estágio' });
+  });
+  return out.sort((a, b) => a.de - b.de);
+}
+/* alguém cadastrou aula (ou estágio) com dia e horário? */
+const temHorarioDe = (s, tipo) => ((tipo === 'aula' ? s.listas.materias : s.listas.turnos) || [])
+  .some(m => emMinutos(m.inicio) != null && emMinutos(m.fim) != null && (m.dias || []).length);
+
+/* O horário do hábito num dia da semana (0 = SEG). null: não vale nesse dia.
+   Hábito preso à aula ou ao estágio só vale nos dias que têm aquele bloco,
+   e o horário sai do começo dele. Enquanto não há horário de aula (ou de
+   estágio) cadastrado em lugar nenhum, ele cai no horário fixo de antes. */
+export function horaDoHabito(h, s, dia) {
+  if (h.modo && h.modo !== (s.modo || 'aula')) return null;
+  if (h.dias && h.dias.length && !h.dias.includes(dia)) return null;
+  if (h.ancora && temHorarioDe(s, h.ancora)) {
+    const b = blocosDoDia(s, dia).find(x => x.tipo === h.ancora);
+    if (!b) return null;
+    const antes = h.antes === '' || h.antes == null || !Number.isFinite(Number(h.antes)) ? ANTES_PADRAO : Number(h.antes);
+    return { min: Math.max(0, b.de - antes), antes, bloco: b };
+  }
+  return { min: emMinutos(h.hora) };
 }
 export const habitosDoDia = (s, k = iso()) => s.listas.habitos.filter(h => valeNoDia(h, s, k));
 export const habitosDoPilarNoDia = (s, pilarId, k = iso()) =>
@@ -403,7 +448,7 @@ export function conflitosComAula(s, folga = FOLGA_POS_AULA) {
     const j = janelaDeAula(s.listas.materias, dia);
     if (!j) return;
     const presos = (s.listas.habitos || [])
-      .filter(h => (h.dias || []).includes(dia) && (!h.modo || h.modo === (s.modo || 'aula')))
+      .filter(h => !h.ancora && (h.dias || []).includes(dia) && (!h.modo || h.modo === (s.modo || 'aula')))
       .map(h => ({ h, min: emMinutos(h.hora) }))
       .filter(x => x.min != null && x.min >= j.de && x.min < j.ate)
       .sort((a, b) => a.min - b.min);
@@ -445,22 +490,31 @@ export const noDia = (s, min) => (min - acordaMin(s) + DIA_MIN) % DIA_MIN;
    Refeições do mesmo grupo viram um item só, igual na Dieta. */
 export function linhaDoDia(s, k = iso(), grupos = []) {
   const acorda = acordaMin(s), dorme = dormeMin(s);
+  const dia = diaIdx(k);
+  const blocos = blocosDoDia(s, dia);
+  /* o que cai dentro de aula ou estágio. Comer não conta (come-se em
+     qualquer lugar), nem hábito do próprio bloco (estudar durante a aula) */
+  const dono = { aula: 'fac', estagio: 'est' };
+  const choqueDe = (min, pilar, tipo) => blocos.find(b => b.tipo !== tipo && pilar !== 'diet'
+    && dono[b.tipo] !== pilar && min >= b.de && min < b.ate) || null;
+
   const itens = [{ tipo: 'acorda', id: 'acorda', min: acorda, nome: 'Acorda' }];
   const semHora = [];
   habitosDoDia(s, k).forEach(h => {
-    const min = emMinutos(h.hora);
-    if (min == null) semHora.push(h);
-    else itens.push({ tipo: 'habito', id: h.id, min, nome: h.nome, h });
+    const hd = horaDoHabito(h, s, dia);
+    if (hd.min == null) { semHora.push(h); return; }
+    itens.push({ tipo: 'habito', id: h.id, min: hd.min, nome: h.nome, h,
+      ancorado: hd.bloco || null, antes: hd.antes, choque: choqueDe(hd.min, h.pilar, hd.bloco?.tipo) });
   });
   grupos.forEach(g => {
     const min = emMinutos(g.hora);
     if (min != null) itens.push({ tipo: 'refeicao', id: 'g' + g.grupo, min, nome: g.nome, g });
   });
-  if ((s.modo || 'aula') === 'aula') {
-    const j = janelaDeAula(s.listas.materias, diaIdx(k));
-    (j ? j.aulas : []).forEach((m, i) =>
-      itens.push({ tipo: 'aula', id: 'aula' + i, min: m.de, ate: m.ate, nome: m.nome }));
-  }
+  blocos.forEach((b, i) => itens.push({
+    tipo: b.tipo, id: b.tipo + i, min: b.de, ate: b.ate, nome: b.nome,
+    /* aula e estágio no mesmo horário: avisa no bloco, não esconde nenhum */
+    choque: blocos.find(o => o !== b && o.tipo !== b.tipo && o.de < b.ate && b.de < o.ate) || null,
+  }));
   itens.push({ tipo: 'dorme', id: 'dorme', min: dorme, nome: 'Dorme' });
   /* o sort é estável: no mesmo minuto vale a ordem de cima (hábito antes de
      refeição), e acordar fica sempre no topo e dormir sempre no fim */
@@ -680,6 +734,7 @@ export const novoPerfil = nome => ({
   tx: [],
   listas: {
     habitos: [], refeicoes: [], exercicios: [], materias: [], entregas: [], tarefas: [], metas: [],
+    turnos: [],    // horário do estágio
     treinos: [],   // rotinas importadas de fora; vazio até alguém importar
     testes: [],    // autotestes de simetria entre as pernas
     cofres: [],    // objetivos de guardar dinheiro
@@ -701,11 +756,21 @@ export function carregarPerfil(id) {
       cfg: { ...base.cfg, ...s.cfg },
       dias: s.dias || {}, extra: s.extra || {}, tx: s.tx || [],
       joelho: s.joelho || {}, volta: s.volta || {}, modo: s.modo || 'aula',
-      listas: { ...base.listas, ...s.listas },
+      listas: migrarListas({ ...base.listas, ...s.listas }),
     };
   } catch {
     return base;          // storage bloqueado ou JSON corrompido: começa limpo
   }
+}
+/* O "Sai pra faculdade" do plano embutido nasceu com 08:00 fixo. Quem já
+   tinha aplicado o plano passa a ter ele preso à aula: some nos dias sem aula
+   e anda junto com a aula nos outros. Só mexe em quem nunca escolheu. */
+export function migrarListas(listas) {
+  return {
+    ...listas,
+    habitos: (listas.habitos || []).map(h => (h.pilar === 'fac' && h.nome === 'Sai pra faculdade' && !('ancora' in h)
+      ? { ...h, ancora: 'aula', antes: ANTES_PADRAO } : h)),
+  };
 }
 export function salvarPerfil(id, s) {
   try { localStorage.setItem(chaveDe(id), JSON.stringify(s)); } catch { /* aba privada: roda sem salvar */ }

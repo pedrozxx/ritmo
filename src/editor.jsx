@@ -171,7 +171,8 @@ export function Gerenciador({ s, chave, filtro, titulo, onFechar, onSalvar, onAp
               <div className="row" key={i.id}>
                 <div className="row-txt">
                   <b>{i.nome}</b>
-                  <span>{[i.meta, i.hora, i.o, i.data && D.dataCurta(i.data),
+                  <span>{[i.meta, i.ancora ? `${i.antes || D.ANTES_PADRAO} min antes ${i.ancora === 'aula' ? 'da aula' : 'do estágio'}` : i.hora,
+                    i.inicio && i.fim && `${i.inicio} às ${i.fim}`, i.o, i.data && D.dataCurta(i.data),
                     i.prot !== '' && i.prot != null && `${i.prot} g`,
                     i.nota !== '' && i.nota != null && `nota ${i.nota}`]
                     .filter(Boolean).join(' · ') || '—'}</span>

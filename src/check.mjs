@@ -798,4 +798,61 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.deepEqual([pl[1].sim, pl[1].vale], [5, 6]);
 }
 
+
+/* ---- aula e estágio mandam na rotina ---- */
+{
+  const p = D.novoPerfil('Blocos');
+  p.modo = 'aula';
+  const sai = { id: 's', pilar: 'fac', nome: 'Sai pra faculdade', hora: '08:00', dias: [0, 1, 2, 3, 4], modo: 'aula', ancora: 'aula', antes: 30 };
+  const treino = { id: 't', pilar: 'gym', nome: 'Treino', hora: '15:00', dias: [] };
+  const lanche = { id: 'l', pilar: 'diet', nome: 'Lanche', hora: '16:00', dias: [] };
+  p.listas.habitos = [sai, treino, lanche];
+
+  // sem horário de aula em lugar nenhum: vale o fixo de antes
+  assert.equal(D.horaDoHabito(sai, p, 0).min, 8 * 60, 'sem aula cadastrada, fica o 08:00');
+
+  // aula só terça à tarde
+  p.listas.materias = [{ id: 'm', nome: 'Redes', dias: [1], inicio: '14:00', fim: '17:30' }];
+  assert.equal(D.horaDoHabito(sai, p, 0), null, 'segunda sem aula: não sai pra faculdade');
+  assert.equal(D.emHora(D.horaDoHabito(sai, p, 1).min), '13:30', 'terça: 30 min antes da aula das 14:00');
+  assert.equal(D.horaDoHabito(sai, { ...p, modo: 'ferias' }, 1), null, 'semana sem aula: não sai');
+  assert.equal(D.horaDoHabito({ ...sai, antes: '' }, p, 1).min, 14 * 60 - D.ANTES_PADRAO, 'antes em branco usa o padrão');
+
+  // estágio 12 às 18, seg a sex
+  p.listas.turnos = [{ id: 'e', nome: 'Estágio', dias: [0, 1, 2, 3, 4], inicio: '12:00', fim: '18:00' }];
+  const seg = D.maisDias(hoje, -D.diaIdx(hoje));
+  const ter = D.maisDias(seg, 1);
+  const linhaSeg = D.linhaDoDia(p, seg).itens;
+  assert.ok(linhaSeg.some(i => i.tipo === 'estagio' && i.hora === '12:00'), 'o estágio entra na linha');
+  assert.ok(!linhaSeg.some(i => i.nome === 'Sai pra faculdade'), 'segunda não tem "sai pra faculdade"');
+  assert.equal(linhaSeg.find(i => i.id === 't').choque.tipo, 'estagio', 'treino às 15:00 cai no estágio');
+  assert.equal(linhaSeg.find(i => i.id === 'l').choque, null, 'comer no estágio não é choque');
+  const linhaTer = D.linhaDoDia(p, ter).itens;
+  assert.equal(linhaTer.find(i => i.nome === 'Sai pra faculdade').hora, '13:30');
+  assert.ok(linhaTer.find(i => i.tipo === 'estagio').choque, 'aula e estágio no mesmo horário aparecem como choque');
+  assert.ok(linhaTer.find(i => i.tipo === 'aula').choque);
+  assert.equal(D.habitosDoDia(p, seg).some(h => h.id === 's'), false, 'e não conta no % da segunda');
+
+  // calendário: um evento por dia que tem aula, na hora daquele dia
+  const ics = ICS.avisosDoPerfil(p, hoje);
+  const ev = ics.eventos.filter(e => e.titulo === 'Sai pra faculdade');
+  assert.equal(ev.length, 1);
+  assert.equal(ev[0].rrule, 'FREQ=WEEKLY;BYDAY=TU');
+  assert.ok(ev[0].inicio.endsWith('T133000'));
+
+  // ajuste automático da aula não reescreve hábito preso à aula
+  assert.ok(!D.conflitosComAula({ ...p, listas: { ...p.listas, habitos: [{ ...sai, hora: '15:00', dias: [1] }] } }).length);
+
+  // perfil antigo com o plano aplicado ganha a âncora sozinho
+  const mig = D.migrarListas({ habitos: [{ id: 'x', pilar: 'fac', nome: 'Sai pra faculdade', hora: '08:00' },
+    { id: 'y', pilar: 'fac', nome: 'Sai pra faculdade', hora: '08:00', ancora: '' }] });
+  assert.equal(mig.habitos[0].ancora, 'aula');
+  assert.equal(mig.habitos[1].ancora, '', 'quem escolheu horário fixo continua com ele');
+
+  // o formulário só pede minutos quando há âncora, e só pede hora quando não há
+  const ks = v => D.camposVisiveis('habitos', v).map(c => c.k);
+  assert.ok(ks({ ancora: 'aula' }).includes('antes') && !ks({ ancora: 'aula' }).includes('hora'));
+  assert.ok(ks({}).includes('hora') && !ks({}).includes('antes'));
+}
+
 console.log('ok — todas as regras do Ritmo passaram');

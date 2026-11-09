@@ -72,6 +72,14 @@ na ordem do relógio, e termina na hora de dormir, que sai 8 horas antes de acor
 Hábito é Sim / Não, refeição é um check (o mesmo da Dieta), aula e sono são só
 referência. O item de agora fica marcado. Hábito sem horário vai num card separado.
 
+A Rotina lê as outras abas. As aulas cadastradas na Faculdade (dia, começo e fim) e o
+horário do estágio (aba Estágio) entram na linha como blocos. Um hábito pode ter o
+horário fixo ou depender da aula ou do estágio do dia ("O horário depende de"): aí ele
+só aparece nos dias que têm aquele bloco e sai X minutos antes do começo dele. O
+"Sai pra faculdade" do plano já vem assim, 30 min antes da primeira aula. Hábito que cai
+no meio da aula ou do estágio, e aula que bate com estágio, ficam marcados em rosa.
+Refeição e hábito do próprio bloco não contam como choque.
+
 O **Progresso** mostra a média dos últimos 7 e 30 dias, a sequência atual e a melhor,
 as últimas 12 semanas dia a dia, a média por semana, cada pilar e cada hábito do mais
 furado pro mais firme. O histórico começa no primeiro dia com resposta: antes disso
