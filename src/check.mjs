@@ -1176,4 +1176,81 @@ assert.equal(ICS.avisosDoPerfil({ nome: 'Ana', listas: {} }, '2026-11-11').event
   assert.ok(!figSvg('squat', true).includes('<animate'), 'parado não anima');
 }
 
+
+/* ---- plano da Ana ---- */
+{
+  const P = await import('./planos.js');
+  const NOMES = (await import('./nomes-opengym.json', { with: { type: 'json' } })).default;
+  const FIG = (await import('./figuras-opengym.json', { with: { type: 'json' } })).default;
+  const vazio = D.novoPerfil('Ana');
+  const a = P.planoInicial('ana', vazio);
+  assert.ok(a.aplicados.includes('plano-ana-v1'));
+  assert.equal(P.planoInicial('ana', a), a, 'roda uma vez só');
+  assert.equal(P.planoInicial('pedro', vazio), vazio, 'Pedro não recebe o plano da Ana');
+  assert.equal(D.usaJoelho(a), false, 'Ana não vê aba Joelho nem autoteste');
+  assert.equal(ICS.avisosDoPerfil(a, hoje).eventos.some(e => /joelho/i.test(e.titulo)), false);
+
+  // o treino: todo exercício com nome e boneco (menos o tríceps francês, sem boneco)
+  assert.equal(a.listas.treinos.length, 5);
+  a.listas.treinos.forEach(tr => tr.ex.forEach(e => {
+    assert.ok(e.nome && NOMES[e.ref], `${tr.id}: ${e.ref} tem nome`);
+    assert.ok(FIG[e.ref] || e.ref === '2188', `${tr.id}: ${e.ref} tem boneco`);
+  }));
+  assert.deepEqual(a.listas.split.map(d => d.treinoId), ['A', 'B', 'C', '', '', 'E', ''],
+    'seg A, ter B, qua C, quinta e sexta sem academia, sábado E, domingo descanso');
+
+  const seg = D.maisDias(hoje, -D.diaIdx(hoje));
+  const dia = n => D.maisDias(seg, n);
+  const g = Di.gruposDeRefeicao(a.listas.refeicoes);
+  const linha = n => D.linhaDoDia(a, dia(n), g).itens;
+  const hora = (l, nome) => l.find(i => i.nome === nome)?.hora;
+
+  // segunda: acorda 4h45, sai 5h30, café 5h, aula 8h50, treino 10h45, almoço 12h05, estágio 13h, estuda 19h30, janta 21h
+  const L0 = linha(0);
+  assert.equal(L0[0].hora, '04:45');
+  assert.equal(hora(L0, 'Café da manhã'), '05:00');
+  assert.equal(hora(L0, 'Sai de Castanhal pra Belém'), '05:30');
+  assert.equal(hora(L0, 'Aula de segunda e terça'), '08:50');
+  assert.equal(hora(L0, 'Treino rápido depois da aula'), '10:45');
+  assert.equal(hora(L0, 'Almoço'), '12:05');
+  assert.equal(hora(L0, 'Estágio'), '13:00');
+  assert.equal(hora(L0, 'Jantar'), '21:00');
+  assert.equal(L0.at(-1).hora, '23:00', 'segunda dorme 23h: terça acorda às 7h');
+  assert.equal(L0[0].cedo, null);
+  // domingo dorme cedo por causa da segunda
+  assert.equal(D.linhaDoDia(a, dia(6), g).itens.at(-1).hora, '20:45');
+  // quarta: aula 8h, volta 9h50, almoço 12h30, estágio, treino 19h30, janta 20h45
+  const L2 = linha(2);
+  assert.equal(hora(L2, 'Aula de quarta'), '08:00');
+  assert.equal(hora(L2, 'Jantar'), '20:45');
+  assert.equal(hora(L2, 'Treino da noite'), '19:30');
+  // quinta: sem treino cedo, sem estágio, janta em Belém 19h
+  const L3 = linha(3);
+  assert.equal(L3[0].hora, '06:15');
+  assert.ok(!L3.some(i => i.tipo === 'estagio'), 'quinta não tem estágio');
+  assert.equal(hora(L3, 'Jantar'), '19:00');
+  // sexta: pilates 7h, café 8h15
+  const L4 = linha(4);
+  assert.equal(hora(L4, 'Pilates'), '07:00');
+  assert.equal(hora(L4, 'Café da manhã'), '08:15');
+  // domingo: nenhum hábito
+  assert.equal(D.habitosDoDia(a, dia(6)).length, 0, 'domingo é descanso');
+  // nenhum hábito cai no meio de aula ou estágio
+  [0, 1, 2, 3, 4, 5].forEach(n => linha(n).forEach(i =>
+    assert.ok(!i.choque, `${D.DIAS_SEMANA[n]}: ${i.nome} bate com ${i.choque?.nome}`)));
+  // dieta: perto do alvo
+  assert.equal(a.cfg.kcal, 1700);
+  assert.equal(a.cfg.proteina, 120);
+
+  // perfil da Ana que já tinha coisa: só preenche o que falta
+  const cheio = { ...D.novoPerfil('Ana'), listas: { ...D.novoPerfil('Ana').listas, habitos: [{ id: 'x', pilar: 'gym', nome: 'Meu' }] } };
+  const ap = P.planoInicial('ana', cheio);
+  assert.deepEqual(ap.listas.habitos.map(h => h.id), ['x'], 'não apaga o que ela já cadastrou');
+  assert.ok(ap.listas.refeicoes.length > 0, 'mas preenche a dieta vazia');
+  // apagar perfil não traz o plano de volta
+  assert.equal(P.planoInicial('ana', D.perfilApagado('ana', 'Ana')).listas.habitos.length, 0);
+  // o botão de Ajustes substitui tudo
+  assert.ok(P.comPlano(cheio, 'ana').listas.habitos.length > 1);
+}
+
 console.log('ok — todas as regras do Ritmo passaram');

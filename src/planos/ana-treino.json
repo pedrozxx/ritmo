@@ -1,0 +1,340 @@
+{
+  "opengym_plan": 1,
+  "exported": "2026-11-10",
+  "name": "Ana · emagrecer e firmar braço",
+  "unit": "kg",
+  "_": "Montado no Ritmo pra Ana (1,68 m, 82 kg, objetivo: perder gordura, braço incluso; vitamina D baixa). Treinos curtos, cabem nos 40 min entre a aula e o estágio. Começa leve: carga em que as 2 últimas repetições custam, sem perder a forma. Quando fechar o topo da faixa em todas as séries, sobe a carga.",
+  "week": {
+    "1": [
+      "A"
+    ],
+    "2": [
+      "B"
+    ],
+    "3": [
+      "C"
+    ],
+    "6": [
+      "E"
+    ]
+  },
+  "routines": [
+    {
+      "id": "A",
+      "name": "A · Pernas e glúteo",
+      "emoji": "🍑",
+      "prog": "double",
+      "ex": [
+        {
+          "id": "2138",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 5,
+          "restOff": true,
+          "note": "Giro leve pra aquecer. Sem bike: esteira caminhando rápido."
+        },
+        {
+          "id": "0739",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 75,
+          "note": "Pés na largura do quadril, desce até 90° de joelho, sem travar em cima. Sem leg press: agachamento goblet. Fase Carga: 3 × 10 com mais carga. Fase Potência: 4 × 8.",
+          "repsMin": 10
+        },
+        {
+          "id": "4742",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 60,
+          "note": "Sobe apertando o glúteo e segura 1 s em cima. Halter ou anilha no quadril. Fase Carga: 3 × 10 com mais carga.",
+          "repsMin": 10
+        },
+        {
+          "id": "0586",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 60,
+          "note": "Desce devagar, em 3 s. Sem mesa flexora: stiff com halteres.",
+          "repsMin": 10
+        },
+        {
+          "id": "4051",
+          "sets": 2,
+          "reps": 30,
+          "restSec": 45,
+          "note": "Deitada de lado, perna de cima sobe sem girar o quadril. 15 de cada lado.",
+          "side": true
+        },
+        {
+          "id": "1470",
+          "mode": "time",
+          "sets": 2,
+          "sec": 20,
+          "restSec": 30,
+          "note": "Corpo reto da cabeça ao pé. 20 s de cada lado; ficou fácil, vai pra 30 s.",
+          "side": true
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "B · Braço, costas e ombro",
+      "emoji": "💪",
+      "prog": "double",
+      "ex": [
+        {
+          "id": "2138",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 5,
+          "restOff": true,
+          "note": "Giro leve pra aquecer. Sem bike: esteira caminhando rápido."
+        },
+        {
+          "id": "0198",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 75,
+          "note": "Puxa até o queixo com o peito aberto, sem jogar o corpo pra trás. Sem puxador: remada unilateral com halter.",
+          "repsMin": 10
+        },
+        {
+          "id": "0289",
+          "sets": 3,
+          "reps": 10,
+          "restSec": 75,
+          "note": "Desce os halteres até a linha do peito, cotovelo a uns 45° do corpo. Sem banco: flexão de braço com o joelho no chão.",
+          "repsMin": 8
+        },
+        {
+          "id": "0292",
+          "sets": 3,
+          "reps": 24,
+          "restSec": 60,
+          "note": "Apoia mão e joelho no banco, puxa o halter até a cintura. 12 de cada lado.",
+          "side": true,
+          "repsMin": 20
+        },
+        {
+          "id": "0405",
+          "sets": 3,
+          "reps": 10,
+          "restSec": 60,
+          "note": "Sentada, sobe os halteres sem arquear as costas.",
+          "repsMin": 8
+        },
+        {
+          "id": "0294",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 0,
+          "note": "Supersérie com o tríceps: faz a rosca e emenda direto no tríceps, aí descansa. Cotovelo parado do lado do corpo.",
+          "sg": "br",
+          "sgName": "braço",
+          "repsMin": 10
+        },
+        {
+          "id": "2188",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 60,
+          "note": "Halter atrás da cabeça, só o antebraço mexe. É o exercício que mais trabalha a parte de trás do braço.",
+          "sg": "br",
+          "sgName": "braço",
+          "repsMin": 10
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "name": "C · Corpo todo e cardio",
+      "emoji": "🔥",
+      "prog": "double",
+      "ex": [
+        {
+          "id": "2138",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 5,
+          "restOff": true,
+          "note": "Giro leve pra aquecer. Sem bike: esteira caminhando rápido."
+        },
+        {
+          "id": "1760",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 60,
+          "note": "Halter junto ao peito, desce sentando pra trás, joelho na direção do pé.",
+          "repsMin": 10
+        },
+        {
+          "id": "0027",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 60,
+          "note": "Tronco inclinado, costas retas, puxa a barra até o umbigo. Sem barra: remada com halteres.",
+          "repsMin": 10
+        },
+        {
+          "id": "0381",
+          "sets": 3,
+          "reps": 20,
+          "restSec": 60,
+          "note": "Passo pra trás, desce até os dois joelhos dobrarem a 90°. 10 de cada lado.",
+          "side": true,
+          "repsMin": 16
+        },
+        {
+          "id": "0314",
+          "sets": 3,
+          "reps": 10,
+          "restSec": 60,
+          "note": "Banco inclinado, desce os halteres devagar.",
+          "repsMin": 8
+        },
+        {
+          "id": "2133",
+          "mode": "time",
+          "sets": 3,
+          "sec": 40,
+          "restSec": 45,
+          "note": "Um halter pesado em cada mão, anda com a postura reta e o abdômen firme."
+        },
+        {
+          "id": "2138",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 12,
+          "restOff": true,
+          "note": "Intervalado: 1 min forte e 2 min leve, 4 vezes. Forte é pedalar sem conseguir conversar."
+        }
+      ]
+    },
+    {
+      "id": "D",
+      "name": "D · Cardio e abdômen (opcional)",
+      "emoji": "🌅",
+      "prog": "off",
+      "ex": [
+        {
+          "id": "0685",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 25,
+          "restOff": true,
+          "note": "Caminhada rápida na esteira com inclinação, ou trote leve. Ritmo em que dá pra falar frases curtas."
+        },
+        {
+          "id": "0276",
+          "sets": 3,
+          "reps": 20,
+          "restSec": 30,
+          "note": "Lombar colada no chão o tempo todo. 10 de cada lado.",
+          "side": true
+        },
+        {
+          "id": "3699",
+          "sets": 3,
+          "reps": 20,
+          "restSec": 30,
+          "note": "Prancha alta, toca o ombro oposto sem balançar o quadril."
+        },
+        {
+          "id": "1470",
+          "mode": "time",
+          "sets": 2,
+          "sec": 20,
+          "restSec": 30,
+          "note": "20 s de cada lado.",
+          "side": true
+        },
+        {
+          "id": "1511",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 5,
+          "restOff": true,
+          "note": "Caminhada leve e alongamento."
+        }
+      ]
+    },
+    {
+      "id": "E",
+      "name": "E · Sábado: corpo todo",
+      "emoji": "☀️",
+      "prog": "double",
+      "ex": [
+        {
+          "id": "2138",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 5,
+          "restOff": true,
+          "note": "Giro leve pra aquecer. Sem bike: esteira caminhando rápido."
+        },
+        {
+          "id": "0431",
+          "sets": 3,
+          "reps": 20,
+          "restSec": 60,
+          "note": "Sobe no banco empurrando pelo calcanhar, desce devagar. 10 de cada lado.",
+          "side": true,
+          "repsMin": 16
+        },
+        {
+          "id": "0432",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 60,
+          "note": "Halteres descem rente às pernas, costas retas, joelho levemente dobrado. Sente atrás da coxa.",
+          "repsMin": 10
+        },
+        {
+          "id": "0198",
+          "sets": 3,
+          "reps": 12,
+          "restSec": 60,
+          "note": "Mesma do treino B.",
+          "repsMin": 10
+        },
+        {
+          "id": "2500",
+          "sets": 3,
+          "reps": 15,
+          "restSec": 45,
+          "note": "Tronco inclinado, abre os braços até a linha do ombro. Carga leve.",
+          "repsMin": 12
+        },
+        {
+          "id": "0294",
+          "sets": 2,
+          "reps": 12,
+          "restSec": 0,
+          "note": "Supersérie com o tríceps.",
+          "sg": "br2",
+          "sgName": "braço",
+          "repsMin": 10
+        },
+        {
+          "id": "2188",
+          "sets": 2,
+          "reps": 12,
+          "restSec": 60,
+          "note": "Supersérie com a rosca.",
+          "sg": "br2",
+          "sgName": "braço",
+          "repsMin": 10
+        },
+        {
+          "id": "2138",
+          "mode": "cardio",
+          "sets": 1,
+          "min": 15,
+          "restOff": true,
+          "note": "Pedal moderado, constante."
+        }
+      ]
+    }
+  ],
+  "customEx": []
+}

@@ -8,6 +8,7 @@ import * as D from './store.js';
 import * as J from './joelho.js';
 import * as Di from './dieta.js';
 import { TELAS } from './screens.jsx';
+import * as P from './planos.js';
 import { Folha, Gerenciador } from './editor.jsx';
 import { Anim, Ico, LISTA, SUAVE, MOLA_CALMA } from './ui.jsx';
 
@@ -59,9 +60,12 @@ const subtitulo = (tela, s) => {
   }[tela] || '';
 };
 
+/* carrega o perfil e, na primeira vez, o plano pronto dele (se tiver) */
+const abrir = id => P.planoInicial(id, D.carregarPerfil(id));
+
 export default function App() {
   const [perfil, setPerfil] = useState(() => D.perfilEscolhido());
-  const [s, setS] = useState(() => (D.perfilEscolhido() ? D.carregarPerfil(D.perfilEscolhido()) : null));
+  const [s, setS] = useState(() => (D.perfilEscolhido() ? abrir(D.perfilEscolhido()) : null));
   const [tela, setTela] = useState('hoje');
   const [menu, setMenu] = useState(false);
   const [folha, setFolha] = useState(null);
@@ -121,7 +125,7 @@ export default function App() {
   const trocarPerfil = id => {
     D.escolherPerfil(id);
     setPerfil(id);
-    setS(D.carregarPerfil(id));
+    setS(abrir(id));
     setTela('hoje');
     setMenu(false);
     setFolha(null);
@@ -188,6 +192,8 @@ export default function App() {
     setJoelho: check => setS(p => ({ ...p, joelho: { ...p.joelho, [D.iso()]: check } })),
     setVolta: (k, v) => setS(p => ({ ...p, volta: { ...p.volta, [k]: v } })),
     addTeste: t => setS(p => D.comItem(p, 'testes', { ...t, data: D.iso() })),
+    /* o plano pronto do perfil, substituindo rotina, dieta e treino */
+    aplicarPlano: id => setS(p => P.comPlano(p, id)),
     apagarPerfil: () => setS(p => D.perfilApagado(D.perfilEscolhido(), p.nome)),
     gerir: (chave, filtro, titulo) => setGestor({ chave, filtro, titulo }),
   }), []);
@@ -223,7 +229,7 @@ export default function App() {
               variants={{ hide: {}, show: { transition: { staggerChildren: .034, delayChildren: .06 } } }}>
               {/* Joelho só existe pra quem importou um plano de treino — o perfil
                   que não tem plano nem vê a aba */}
-              {MENU.filter(([id]) => id !== 'joelho' || (s.listas.treinos || []).length > 0)
+              {MENU.filter(([id]) => id !== 'joelho' || D.usaJoelho(s))
                 .map(([id, nome, icon]) => (
                 <motion.button key={id} className="nav-item" onClick={() => a.go(id)}
                   aria-current={tela === id ? 'page' : undefined}

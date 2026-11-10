@@ -1,0 +1,237 @@
+{
+  "_": "Rotina da Ana, montada pelo que ela contou da semana. dias: 0=SEG … 6=DOM. Domingo é descanso: nada marcado. A quinta não tem treino cedo de propósito (treino na quarta à noite + acordar 5h10 = sono curto); o treino D fica pronto na Academia pra ligar se ela quiser.",
+  "acorda": "07:00",
+  "acordaDia": {
+    "0": "04:45",
+    "1": "07:00",
+    "2": "06:45",
+    "3": "06:15",
+    "4": "06:15",
+    "5": "07:30",
+    "6": "08:30"
+  },
+  "cfg": {
+    "trajetoEstagio": 20,
+    "trajetoFaculdade": 30
+  },
+  "turnos": [
+    {
+      "nome": "Estágio",
+      "dias": [
+        0,
+        1,
+        2,
+        4
+      ],
+      "inicio": "13:00",
+      "fim": "19:00"
+    }
+  ],
+  "materias": [
+    {
+      "nome": "Aula de segunda e terça",
+      "dias": [
+        0,
+        1
+      ],
+      "inicio": "08:50",
+      "fim": "10:30",
+      "meta": "troque pelo nome da matéria"
+    },
+    {
+      "nome": "Aula de quarta",
+      "dias": [
+        2
+      ],
+      "inicio": "08:00",
+      "fim": "09:40",
+      "meta": "troque pelo nome da matéria"
+    },
+    {
+      "nome": "Aula de quinta",
+      "dias": [
+        3
+      ],
+      "inicio": "09:40",
+      "fim": "11:20",
+      "meta": "troque pelo nome da matéria"
+    }
+  ],
+  "habitos": [
+    {
+      "pilar": "fac",
+      "nome": "Sai de Castanhal pra Belém",
+      "hora": "05:30",
+      "dias": [
+        0
+      ],
+      "modo": "",
+      "meta": "entre 5h30 e 5h45, aula às 8h50 · café na bolsa pra comer no caminho"
+    },
+    {
+      "pilar": "fac",
+      "nome": "Sai pra faculdade",
+      "hora": "08:15",
+      "dias": [
+        1
+      ],
+      "modo": "",
+      "meta": "da casa da avó, aula às 8h50"
+    },
+    {
+      "pilar": "fac",
+      "nome": "Sai da casa da avó pra faculdade",
+      "hora": "07:30",
+      "dias": [
+        2
+      ],
+      "modo": "",
+      "meta": "no máximo 7h30, aula às 8h"
+    },
+    {
+      "pilar": "fac",
+      "nome": "Pega o ônibus de volta pra Castanhal",
+      "hora": "09:50",
+      "dias": [
+        2
+      ],
+      "modo": "",
+      "meta": "pra chegar antes das 13h · lanche da manhã no ônibus"
+    },
+    {
+      "pilar": "fac",
+      "nome": "Sai de Castanhal pra Belém",
+      "hora": "07:00",
+      "dias": [
+        3
+      ],
+      "modo": "",
+      "meta": "aula das 9h40 às 11h20"
+    },
+    {
+      "pilar": "fac",
+      "nome": "Volta pra Castanhal",
+      "hora": "19:15",
+      "dias": [
+        3
+      ],
+      "modo": "",
+      "meta": "chega lá pelas 21h40, 22h · janta antes de pegar o ônibus"
+    },
+    {
+      "pilar": "fac",
+      "nome": "Estudar pra faculdade",
+      "hora": "19:30",
+      "dias": [
+        0
+      ],
+      "modo": "",
+      "meta": "depois do estágio, 1 h a 1h30 · janta depois"
+    },
+    {
+      "pilar": "fac",
+      "nome": "Manhã livre: cuidado pessoal ou projeto",
+      "hora": "09:00",
+      "dias": [
+        4
+      ],
+      "modo": "",
+      "meta": "unha e se cuidar · se tiver projeto da faculdade, ele entra aqui"
+    },
+    {
+      "pilar": "gym",
+      "nome": "Treino rápido depois da aula",
+      "hora": "10:45",
+      "dias": [
+        0,
+        1
+      ],
+      "modo": "",
+      "meta": "uns 40 min, o treino do dia está na Academia · sai até 11h40 pra almoçar antes do estágio"
+    },
+    {
+      "pilar": "gym",
+      "nome": "Treino da noite",
+      "hora": "19:30",
+      "dias": [
+        2
+      ],
+      "modo": "",
+      "meta": "depois do estágio, uns 50 min"
+    },
+    {
+      "pilar": "gym",
+      "nome": "Pilates",
+      "hora": "07:00",
+      "dias": [
+        4
+      ],
+      "modo": "",
+      "meta": "7h às 8h"
+    },
+    {
+      "pilar": "gym",
+      "nome": "Treino de sábado",
+      "hora": "09:00",
+      "dias": [
+        5
+      ],
+      "modo": "",
+      "meta": "corpo todo, uns 50 min"
+    },
+    {
+      "pilar": "gym",
+      "nome": "Sol de 10 a 15 min (vitamina D)",
+      "dias": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "modo": "",
+      "meta": "braços e pernas de fora, antes das 10h ou depois das 16h · sem protetor nesses minutos"
+    },
+    {
+      "pilar": "est",
+      "nome": "Cumpri o horário do estágio",
+      "hora": "19:00",
+      "dias": [
+        0,
+        1,
+        2,
+        4
+      ],
+      "modo": "",
+      "meta": "13h às 19h · as tarefas você lança na aba Estágio"
+    },
+    {
+      "pilar": "diet",
+      "nome": "Bebi 2,5 L de água",
+      "dias": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "modo": "",
+      "meta": "garrafa cheia na bolsa nos dias de ônibus"
+    },
+    {
+      "pilar": "diet",
+      "nome": "Lanche da tarde separado pra levar",
+      "dias": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "modo": "",
+      "meta": "na véspera ou antes de sair · é ele que segura a fome até o jantar"
+    }
+  ]
+}

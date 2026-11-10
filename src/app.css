@@ -463,3 +463,6 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;-webki
 .fig .mk2{fill:var(--lilac)}
 .fig .tw{fill:var(--lilac-soft);stroke:var(--lilac);stroke-width:1}
 .fig .lg{fill:var(--ink-3);font-size:8px;font-family:'Hanken Grotesk',system-ui,sans-serif}
+/* sem o plano do joelho, a perna direita não tem nada de especial */
+.fig.sem-joelho .rl{stroke:var(--ink)}
+.fig.sem-joelho .lg{display:none}

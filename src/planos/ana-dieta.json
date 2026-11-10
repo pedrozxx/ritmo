@@ -1,0 +1,547 @@
+{
+  "_": "Dieta da Ana montada no Ritmo, não por nutricionista. Alvo de uns 1.700 kcal e 120 g de proteína por dia, pra emagrecer sem passar fome (1,68 m, 82 kg, 4 treinos e pilates na semana). Calorias e proteína de cada opção são estimativas de tabela (TACO), arredondadas. horaPorDia muda o horário em dias específicos (0=SEG): segunda o café é às 5h no caminho, quarta o jantar é depois do treino, quinta é em Belém antes do ônibus.",
+  "totaisDoDia": {
+    "prot": 120,
+    "kcal": 1700
+  },
+  "refeicoes": [
+    {
+      "grupo": "cafe",
+      "nome": "Café da manhã 1",
+      "hora": "07:00",
+      "horaPorDia": {
+        "0": "05:00",
+        "1": "07:15",
+        "2": "07:00",
+        "3": "06:35",
+        "4": "08:15",
+        "5": "07:45",
+        "6": "09:00"
+      },
+      "prot": 22,
+      "kcal": 410,
+      "obs": "Pão com ovo e fruta. Café ou chá sem açúcar.",
+      "itens": [
+        {
+          "nome": "Pão francês",
+          "qtd": "1 unidade (50 g)",
+          "subs": [
+            {
+              "nome": "Pão integral",
+              "qtd": "2 fatias"
+            },
+            {
+              "nome": "Tapioca",
+              "qtd": "2 col. sopa de goma"
+            }
+          ]
+        },
+        {
+          "nome": "Ovo",
+          "qtd": "2 unidades",
+          "subs": [
+            {
+              "nome": "Frango desfiado",
+              "qtd": "60 g"
+            }
+          ]
+        },
+        {
+          "nome": "Queijo minas frescal",
+          "qtd": "1 fatia (30 g)",
+          "subs": [
+            {
+              "nome": "Ricota",
+              "qtd": "2 col. sopa"
+            }
+          ]
+        },
+        {
+          "nome": "Mamão",
+          "qtd": "1 fatia (150 g)",
+          "subs": [
+            {
+              "nome": "Banana",
+              "qtd": "1 unidade"
+            },
+            {
+              "nome": "Melão",
+              "qtd": "2 fatias"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "grupo": "cafe",
+      "nome": "Café da manhã 2",
+      "hora": "07:00",
+      "horaPorDia": {
+        "0": "05:00",
+        "1": "07:15",
+        "2": "07:00",
+        "3": "06:35",
+        "4": "08:15",
+        "5": "07:45",
+        "6": "09:00"
+      },
+      "prot": 25,
+      "kcal": 340,
+      "obs": "Pra levar: é o da segunda, que sai de casa 5h30 e come no caminho.",
+      "itens": [
+        {
+          "nome": "Pão integral",
+          "qtd": "2 fatias",
+          "subs": []
+        },
+        {
+          "nome": "Frango desfiado",
+          "qtd": "60 g",
+          "subs": [
+            {
+              "nome": "Ovo cozido",
+              "qtd": "2 unidades"
+            }
+          ]
+        },
+        {
+          "nome": "Requeijão light",
+          "qtd": "1 col. sopa",
+          "subs": []
+        },
+        {
+          "nome": "Banana",
+          "qtd": "1 unidade",
+          "subs": [
+            {
+              "nome": "Maçã",
+              "qtd": "1 unidade"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "grupo": "lm",
+      "nome": "Lanche da manhã 1",
+      "hora": "10:30",
+      "horaPorDia": {
+        "0": "10:35",
+        "1": "10:35",
+        "2": "10:00",
+        "3": "11:30",
+        "4": "10:30"
+      },
+      "prot": 8,
+      "kcal": 160,
+      "obs": "Segunda e terça é o pré-treino: come antes de ir pra academia.",
+      "itens": [
+        {
+          "nome": "Banana",
+          "qtd": "1 unidade",
+          "subs": []
+        },
+        {
+          "nome": "Iogurte natural",
+          "qtd": "1 pote (170 g)",
+          "subs": [
+            {
+              "nome": "Iogurte grego light",
+              "qtd": "1 pote"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "grupo": "lm",
+      "nome": "Lanche da manhã 2",
+      "hora": "10:30",
+      "horaPorDia": {
+        "0": "10:35",
+        "1": "10:35",
+        "2": "10:00",
+        "3": "11:30",
+        "4": "10:30"
+      },
+      "prot": 13,
+      "kcal": 200,
+      "itens": [
+        {
+          "nome": "Ovo cozido",
+          "qtd": "2 unidades",
+          "subs": []
+        },
+        {
+          "nome": "Fruta",
+          "qtd": "1 unidade",
+          "subs": []
+        }
+      ]
+    },
+    {
+      "grupo": "alm",
+      "nome": "Almoço 1",
+      "hora": "12:30",
+      "horaPorDia": {
+        "0": "12:05",
+        "1": "12:05",
+        "2": "12:30",
+        "3": "12:15",
+        "4": "12:15"
+      },
+      "prot": 45,
+      "kcal": 430,
+      "obs": "Metade do prato salada e legumes, um quarto frango, um quarto arroz e feijão.",
+      "itens": [
+        {
+          "nome": "Peito de frango grelhado",
+          "qtd": "120 g",
+          "subs": [
+            {
+              "nome": "Patinho moído",
+              "qtd": "100 g"
+            }
+          ]
+        },
+        {
+          "nome": "Arroz",
+          "qtd": "4 col. sopa (100 g)",
+          "subs": [
+            {
+              "nome": "Macaxeira cozida",
+              "qtd": "100 g"
+            },
+            {
+              "nome": "Batata-doce",
+              "qtd": "120 g"
+            }
+          ]
+        },
+        {
+          "nome": "Feijão",
+          "qtd": "1 concha (80 g)",
+          "subs": []
+        },
+        {
+          "nome": "Salada e legumes",
+          "qtd": "à vontade",
+          "subs": []
+        },
+        {
+          "nome": "Azeite",
+          "qtd": "1 col. chá",
+          "subs": []
+        }
+      ]
+    },
+    {
+      "grupo": "alm",
+      "nome": "Almoço 2",
+      "hora": "12:30",
+      "horaPorDia": {
+        "0": "12:05",
+        "1": "12:05",
+        "2": "12:30",
+        "3": "12:15",
+        "4": "12:15"
+      },
+      "prot": 33,
+      "kcal": 370,
+      "obs": "Peixe grelhado ou cozido, nunca frito.",
+      "itens": [
+        {
+          "nome": "Filé de peixe (pescada, dourada, filhote)",
+          "qtd": "130 g",
+          "subs": []
+        },
+        {
+          "nome": "Macaxeira cozida",
+          "qtd": "100 g",
+          "subs": [
+            {
+              "nome": "Arroz",
+              "qtd": "4 col. sopa"
+            }
+          ]
+        },
+        {
+          "nome": "Feijão",
+          "qtd": "1 concha (80 g)",
+          "subs": []
+        },
+        {
+          "nome": "Salada e legumes",
+          "qtd": "à vontade",
+          "subs": []
+        },
+        {
+          "nome": "Azeite",
+          "qtd": "1 col. chá",
+          "subs": []
+        }
+      ]
+    },
+    {
+      "grupo": "alm",
+      "nome": "Almoço 3",
+      "hora": "12:30",
+      "horaPorDia": {
+        "0": "12:05",
+        "1": "12:05",
+        "2": "12:30",
+        "3": "12:15",
+        "4": "12:15"
+      },
+      "prot": 35,
+      "kcal": 500,
+      "obs": "Restaurante ou self-service em Belém. Valores aproximados: depende do prato.",
+      "itens": [
+        {
+          "nome": "Salada",
+          "qtd": "metade do prato",
+          "subs": []
+        },
+        {
+          "nome": "Carne ou frango grelhado",
+          "qtd": "1 pedaço do tamanho da palma da mão",
+          "subs": []
+        },
+        {
+          "nome": "Arroz",
+          "qtd": "3 col. sopa",
+          "subs": []
+        },
+        {
+          "nome": "Feijão",
+          "qtd": "1 concha",
+          "subs": []
+        },
+        {
+          "nome": "Evitar",
+          "qtd": "fritura, maionese e refrigerante",
+          "subs": []
+        }
+      ]
+    },
+    {
+      "grupo": "lt",
+      "nome": "Lanche da tarde 1",
+      "hora": "16:00",
+      "prot": 24,
+      "kcal": 280,
+      "obs": "Feito em casa e levado na bolsa pro estágio.",
+      "itens": [
+        {
+          "nome": "Pão integral",
+          "qtd": "2 fatias",
+          "subs": [
+            {
+              "nome": "Tapioca",
+              "qtd": "2 col. sopa de goma"
+            }
+          ]
+        },
+        {
+          "nome": "Frango desfiado",
+          "qtd": "60 g",
+          "subs": [
+            {
+              "nome": "Ovo",
+              "qtd": "2 unidades"
+            },
+            {
+              "nome": "Atum em água",
+              "qtd": "1/2 lata"
+            }
+          ]
+        },
+        {
+          "nome": "Fruta",
+          "qtd": "1 unidade",
+          "subs": []
+        }
+      ]
+    },
+    {
+      "grupo": "lt",
+      "nome": "Lanche da tarde 2",
+      "hora": "16:00",
+      "prot": 10,
+      "kcal": 205,
+      "itens": [
+        {
+          "nome": "Iogurte natural",
+          "qtd": "1 pote (170 g)",
+          "subs": []
+        },
+        {
+          "nome": "Aveia",
+          "qtd": "2 col. sopa",
+          "subs": []
+        },
+        {
+          "nome": "Fruta picada",
+          "qtd": "1 unidade",
+          "subs": []
+        }
+      ]
+    },
+    {
+      "grupo": "lt",
+      "nome": "Lanche da tarde 3",
+      "hora": "16:00",
+      "prot": 8,
+      "kcal": 160,
+      "obs": "O mais fácil de levar quando não deu tempo de preparar nada.",
+      "itens": [
+        {
+          "nome": "Fruta",
+          "qtd": "1 unidade",
+          "subs": []
+        },
+        {
+          "nome": "Queijo minas frescal",
+          "qtd": "40 g",
+          "subs": [
+            {
+              "nome": "Castanha-do-pará",
+              "qtd": "3 unidades"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "grupo": "jan",
+      "nome": "Jantar 1",
+      "hora": "20:00",
+      "horaPorDia": {
+        "0": "21:00",
+        "2": "20:45",
+        "3": "19:00"
+      },
+      "prot": 25,
+      "kcal": 315,
+      "obs": "Omelete com legumes: o mais rápido depois do estágio.",
+      "itens": [
+        {
+          "nome": "Ovo",
+          "qtd": "2 unidades",
+          "subs": []
+        },
+        {
+          "nome": "Clara",
+          "qtd": "2 unidades",
+          "subs": []
+        },
+        {
+          "nome": "Tomate, cebola e espinafre",
+          "qtd": "à vontade",
+          "subs": []
+        },
+        {
+          "nome": "Queijo branco",
+          "qtd": "20 g",
+          "subs": []
+        },
+        {
+          "nome": "Pão integral",
+          "qtd": "1 fatia",
+          "subs": []
+        }
+      ]
+    },
+    {
+      "grupo": "jan",
+      "nome": "Jantar 2",
+      "hora": "20:00",
+      "horaPorDia": {
+        "0": "21:00",
+        "2": "20:45",
+        "3": "19:00"
+      },
+      "prot": 37,
+      "kcal": 350,
+      "itens": [
+        {
+          "nome": "Frango ou patinho",
+          "qtd": "120 g",
+          "subs": []
+        },
+        {
+          "nome": "Legumes refogados",
+          "qtd": "à vontade",
+          "subs": []
+        },
+        {
+          "nome": "Arroz",
+          "qtd": "3 col. sopa",
+          "subs": [
+            {
+              "nome": "Macaxeira",
+              "qtd": "80 g"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "grupo": "jan",
+      "nome": "Jantar 3",
+      "hora": "20:00",
+      "horaPorDia": {
+        "0": "21:00",
+        "2": "20:45",
+        "3": "19:00"
+      },
+      "prot": 23,
+      "kcal": 380,
+      "obs": "Tapioca recheada. Na quinta dá pra comprar em Belém antes do ônibus.",
+      "itens": [
+        {
+          "nome": "Goma de tapioca",
+          "qtd": "3 col. sopa (60 g)",
+          "subs": []
+        },
+        {
+          "nome": "Frango desfiado",
+          "qtd": "60 g",
+          "subs": []
+        },
+        {
+          "nome": "Queijo branco",
+          "qtd": "30 g",
+          "subs": []
+        }
+      ]
+    }
+  ],
+  "orientacoes": [
+    {
+      "hora": "",
+      "titulo": "Vitamina D",
+      "texto": "O exame já mostrou que está baixa. Quem decide se precisa de suplemento e a dose é o médico: leva o exame na próxima consulta. Enquanto isso, 10 a 15 min de sol nos braços e pernas, antes das 10h ou depois das 16h. A indisposição pode ter mais de uma causa, e vale pedir ao médico pra olhar ferro e tireoide também."
+    },
+    {
+      "hora": "",
+      "titulo": "Água",
+      "texto": "2,5 a 3 L por dia. Nos dias de ônibus a garrafa vai cheia na bolsa; sede e cansaço se confundem."
+    },
+    {
+      "hora": "",
+      "titulo": "Dia de ônibus",
+      "texto": "Nunca sair de casa sem comer ou sem lanche na bolsa. Fome no meio da tarde é o que leva pro salgado da cantina."
+    },
+    {
+      "hora": "",
+      "titulo": "Açaí",
+      "texto": "Pode, uma vez na semana, puro e sem açúcar, no lugar de um lanche ou do jantar. Com granola, leite em pó e açúcar vira uma refeição inteira em calorias."
+    },
+    {
+      "hora": "",
+      "titulo": "Sábado",
+      "texto": "Uma refeição livre no sábado, uma só. Come sem culpa e volta ao plano na seguinte."
+    }
+  ]
+}

@@ -238,7 +238,9 @@ export function estagioAntesDaAula(s, dia) {
    pediu isso em "ondeAula": aí o café vai pro estágio, logo que chega, e o
    almoço vai pra faculdade, na hora que chega do estágio. */
 export function horaDaRefeicao(g, s, dia) {
-  const fixo = { min: emMinutos(g.hora), onde: null };
+  /* um dia da semana pode ter horário próprio (horaPorDia), senão vale o de sempre */
+  const porDia = (g.opcoes || []).map(r => r.horaPorDia && r.horaPorDia[dia]).find(Boolean);
+  const fixo = { min: emMinutos(porDia || g.hora), onde: null };
   const quer = (g.opcoes || []).map(r => r.ondeAula).find(Boolean);
   if (!quer) return fixo;
   const ea = estagioAntesDaAula(s, dia);
@@ -797,7 +799,7 @@ export function deBackup(json, id = json?.perfil) {
   const base = novoPerfil(json.nome || json.estado.nome || 'Pedro');
   /* o arquivo é a verdade: volta como foi salvo, e os pedidos do perfil
      ficam como já feitos pra não mexer nele na próxima abertura */
-  const todos = (AJUSTES_PEDIDOS[id] || []).map(x => x.id);
+  const todos = [...(AJUSTES_PEDIDOS[id] || []).map(x => x.id), ...(PLANO_INICIAL[id] ? [PLANO_INICIAL[id]] : [])];
   return normalizar(id, base, { ...json.estado, aplicados: [...new Set([...(json.estado.aplicados || []), ...todos])] });
 }
 export function horasDaSemana(s, ref = iso()) {
@@ -881,6 +883,14 @@ export function comItem(s, chave, item) {
 export function semItem(s, chave, id) {
   return { ...s, listas: { ...s.listas, [chave]: (s.listas[chave] || []).filter(x => x.id !== id) } };
 }
+
+/* A aba Joelho, o autoteste e o reteste no calendário são do plano de volta
+   ao futebol do Pedro. Perfil com plano de treino sem joelho (semJoelho) não
+   vê nada disso. */
+export const usaJoelho = s => (s.listas.treinos || []).length > 0 && !s.semJoelho;
+
+/* plano inicial de um perfil: o id fica em `aplicados` quando é aplicado */
+export const PLANO_INICIAL = { ana: 'plano-ana-v1' };
 
 /* ---- estado salvo no aparelho, um por perfil ---- */
 const CHAVE_PERFIL = 'ritmo:perfil';
@@ -990,7 +1000,7 @@ function normalizar(id, base, s) {
 /* perfil apagado nasce vazio de verdade: os pedidos ficam como já feitos,
    senão voltariam na próxima abertura */
 export const perfilApagado = (id, nome) =>
-  ({ ...novoPerfil(nome), aplicados: (AJUSTES_PEDIDOS[id] || []).map(x => x.id) });
+  ({ ...novoPerfil(nome), aplicados: [...(AJUSTES_PEDIDOS[id] || []).map(x => x.id), ...(PLANO_INICIAL[id] ? [PLANO_INICIAL[id]] : [])] });
 export function carregarPerfil(id) {
   const base = novoPerfil((PERFIS.find(p => p.id === id) || { nome: 'Pedro' }).nome);
   try {

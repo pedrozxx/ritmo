@@ -120,6 +120,14 @@ de fora, funciona offline), e `src/figuras-opengym.json` diz qual boneco é de q
 exercício. A perna direita, a operada, aparece em rosa. Com as animações desligadas em
 Ajustes, ou "reduzir movimento" ligado no iPhone, o boneco fica parado na pose principal.
 
+## Planos prontos por perfil
+
+`src/planos/` guarda o plano pronto de cada pessoa (rotina, dieta e treino) e
+`src/planos.js` aplica. O da Ana entra sozinho na primeira abertura do perfil dela, só
+nas partes que estiverem vazias, e o botão em Ajustes → Importar substitui tudo. O do
+Pedro continua no botão de Ajustes. Refeição pode ter horário próprio por dia da semana
+(`horaPorDia`), e a aba Joelho só aparece pra quem tem o plano do joelho.
+
 ## O percurso de 90 dias
 
 Três fases de 30 dias: **Base** (criar o hábito), **Ritmo** (subir a carga) e **Pico**

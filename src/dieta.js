@@ -16,6 +16,8 @@ export function importarPlanoDieta(json) {
     kcal: r.kcal ?? '',
     obs: r.obs || '',
     ondeAula: r.ondeAula || '',
+    /* horário em dias específicos (0 = SEG): { "0": "05:00" } */
+    ...(r.horaPorDia ? { horaPorDia: r.horaPorDia } : {}),
     /* o campo de texto que o esquema antigo já tinha, pra lista e editor */
     o: (r.itens || []).map(it => it.nome).join(', '),
     itens: (r.itens || []).map(it => ({

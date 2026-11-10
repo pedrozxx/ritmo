@@ -112,7 +112,7 @@ export function avisosDoPerfil(s, ref = iso()) {
     const e = eventoDoHabito(h, ref);
     if (e) eventos.push(e); else semHora++;
   });
-  if ((s.listas.treinos || []).length) eventos.push(eventoDoReteste(s.listas.testes, ref));
+  if ((s.listas.treinos || []).length && !s.semJoelho) eventos.push(eventoDoReteste(s.listas.testes, ref));
   const modo = (s.modo || 'aula') === 'aula' ? 'com aula' : 'sem aula';
   return { eventos, semHora, texto: montarIcs(eventos, `Ritmo · ${s.nome} · ${modo}`) };
 }

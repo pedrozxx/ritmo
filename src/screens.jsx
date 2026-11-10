@@ -11,6 +11,7 @@ import * as ICS from './ics.js';
 import NOMES_OPENGYM from './nomes-opengym.json';
 import FIGURAS_OPENGYM from './figuras-opengym.json';
 import { figSvg } from './figuras.js';
+import * as PL from './planos.js';
 /* o plano do Pedro embutido: o botão de Ajustes aplica estes três de uma vez.
    Não é semente — perfil novo continua nascendo vazio, isso só entra no toque. */
 import PLANO_TREINO from './plano-treino.json';
@@ -104,7 +105,7 @@ function Hoje({ s, a }) {
   const nao = D.contar(resp, habitos, 'nao');
   const pendentes = habitos.filter(h => !resp[h.id]);
   const rt = J.reteste(s.listas.testes, hoje);
-  const avisoJoelho = (s.listas.treinos || []).length > 0 && rt.devido;
+  const avisoJoelho = D.usaJoelho(s) && rt.devido;
   const c = D.ciclo(s, hoje);
   const mes = D.doMes(s.tx, hoje);
   const { entradas, saidas, saldo } = D.caixa(mes);
@@ -1014,7 +1015,7 @@ function ExercicioDoDia({ s, a, treino, ex, faseId, dia = D.iso(), editavel = tr
         )}
         {(ex.nota || ex.desc) && <span className="nota">{ex.nota || ex.desc}</span>}
         {/* SVG montado em figuras.js só a partir de constantes do código: nada de fora entra aqui */}
-        {fig && <div className="fig" dangerouslySetInnerHTML={{ __html: figSvg(fig, parado) }} />}
+        {fig && <div className={`fig ${D.usaJoelho(s) ? '' : 'sem-joelho'}`} dangerouslySetInnerHTML={{ __html: figSvg(fig, parado) }} />}
       </div>
     </div>
   );
@@ -1241,7 +1242,7 @@ function Dieta({ s, a }) {
         {grupos.length === 0
           ? <Convite a={a} chave="refeicoes" titulo="Refeições" rotulo="Cadastrar refeição"
             texto="Monte o seu dia de comida: nome, horário, proteína e caloria de cada refeição." />
-          : grupos.map(g => <RefeicaoGrupo key={g.grupo} g={g} ex={ex} a={a} />)}
+          : grupos.map(g => <RefeicaoGrupo key={g.grupo} g={g} ex={ex} a={a} s={s} />)}
       </Card>
 
       {(s.listas.orientacoes || []).length > 0 && (
@@ -1824,7 +1825,7 @@ function Ajustes({ s, a }) {
           {(s.listas.treinos || []).length > 0 &&
             <Pill t={`${s.listas.treinos.length} rotinas`} cor="lilac" />}
         </div>
-        <ImportarPlano a={a} />
+        <ImportarPlano s={s} a={a} />
       </Card>
 
       <Card>
@@ -1940,7 +1941,9 @@ function BaixarAvisos({ s }) {
 
 /* Um horário de refeição. Com mais de uma opção no mesmo grupo, elas são
    alternativas: escolhe uma, e marcar qualquer uma já fecha o horário. */
-function RefeicaoGrupo({ g, ex, a }) {
+function RefeicaoGrupo({ g, ex, a, s }) {
+  /* o horário de hoje: dia da semana com horário próprio (horaPorDia) ou o de sempre */
+  const hora = (s && D.emHora(D.horaDaRefeicao(g, s, D.diaIdx(D.iso())).min)) || g.hora;
   const [sel, setSel] = useState(g.opcoes[0].id);
   const marcada = g.opcoes.find(o => ex['rf' + o.id]);
   const r = marcada || g.opcoes.find(o => o.id === sel) || g.opcoes[0];
@@ -1948,7 +1951,7 @@ function RefeicaoGrupo({ g, ex, a }) {
     <div className="row alto">
       <Check on={!!ex['rf' + r.id]} onClick={() => a.toggleExtra('rf' + r.id)} label={r.nome} />
       <div className="row-txt">
-        <b>{[g.nome, g.hora].filter(Boolean).join(' · ')}</b>
+        <b>{[g.nome, hora].filter(Boolean).join(' · ')}</b>
         {g.opcoes.length > 1 && (
           <div className="chips" role="group" aria-label={`Opções de ${g.nome}`}>
             {g.opcoes.map(o => (
@@ -1981,7 +1984,7 @@ function RefeicaoGrupo({ g, ex, a }) {
 
 /* Importa o .opengym-plan.json. Substitui as rotinas e a divisão da semana;
    não inventa nome: exercício sem par no mapa aparece pelo código. */
-function ImportarPlano({ a }) {
+function ImportarPlano({ s, a }) {
   const [msg, setMsg] = useState('');
   const [ruim, setRuim] = useState(false);
 
@@ -2045,6 +2048,17 @@ function ImportarPlano({ a }) {
       {msg && <p className={ruim ? 'err' : 'nota'} role="status" style={{ marginTop: 10 }}>{msg}</p>}
 
       <div className="sep" />
+      {PL.temPlano(D.perfilEscolhido()) ? (
+        <>
+          <p className="nota" style={{ margin: '0 0 12px' }}>
+            O plano de {s.nome} já vem no app: rotina, dieta e treino de uma vez.
+            Substitui o que estiver neste perfil.
+          </p>
+          <ConfirmaDuasVezes rotulo="Usar o plano que já vem no app"
+            confirma="Toque de novo: substitui rotina, dieta e treino"
+            onOk={() => { a.aplicarPlano(D.perfilEscolhido()); setRuim(false); setMsg('Plano aplicado.'); }} />
+        </>
+      ) : (<>
       <p className="nota" style={{ margin: '0 0 12px' }}>
         O plano do Pedro já vem junto com o app: treino, dieta e rotina de uma vez,
         sem precisar do arquivo. Substitui o que estiver neste perfil.
@@ -2061,6 +2075,7 @@ function ImportarPlano({ a }) {
           setRuim(false);
           setMsg(`${treinos.length} rotinas de treino, ${refeicoes.length} refeições e ${PLANO_ROTINA.habitos.length} hábitos.`);
         }} />
+      </>)}
     </>
   );
 }
